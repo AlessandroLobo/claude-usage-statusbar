@@ -17,6 +17,7 @@ jobs:
           node-version: 20
       - run: node test.js
       - run: npx --yes @vscode/vsce package
+      - run: cp ./*.vsix claude-usage-statusbar.vsix
       - run: gh release create "$GITHUB_REF_NAME" ./*.vsix --generate-notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

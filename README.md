@@ -66,7 +66,27 @@ Pela linha de comando (Windows), com o `.vsix` na pasta, o script instala no Ant
 powershell -ExecutionPolicy Bypass -File .\Instalar.ps1
 ```
 
-Ou direto: `antigravity-ide --install-extension claude-usage-statusbar-0.2.0.vsix` (ou `code --install-extension ...`).
+### Instalar ou atualizar com um comando
+
+Cada Release traz também o arquivo `claude-usage-statusbar.vsix` (sem número de versão), então o link abaixo sempre baixa a versão mais recente. **O mesmo comando serve para instalar e para atualizar.**
+
+PowerShell (Windows):
+
+```powershell
+iwr https://github.com/AlessandroLobo/claude-usage-statusbar/releases/latest/download/claude-usage-statusbar.vsix -OutFile $env:TEMP\claude-usage-statusbar.vsix
+antigravity-ide --install-extension $env:TEMP\claude-usage-statusbar.vsix --force
+```
+
+Bash (Linux/macOS):
+
+```bash
+curl -L -o /tmp/claude-usage-statusbar.vsix https://github.com/AlessandroLobo/claude-usage-statusbar/releases/latest/download/claude-usage-statusbar.vsix
+antigravity-ide --install-extension /tmp/claude-usage-statusbar.vsix --force
+```
+
+No VS Code, troque `antigravity-ide` por `code` (no Antigravity, o comando também pode ser `antigravity`). Depois, *Developer: Reload Window*.
+
+A extensão não se atualiza sozinha quando instalada por `.vsix`: para receber uma versão nova, repita o comando.
 
 > A extensão oficial do Claude Code para o editor não desenha barras de plugin (`AbovePrompt`/`ui_render`); por isso esta extensão lê o transcript da sessão em vez de depender do plugin.
 
