@@ -119,6 +119,8 @@ powershell -ExecutionPolicy Bypass -File .\Instalar.ps1
 
 Depois de instalar por linha de comando, use **Developer: Reload Window** no editor.
 
+> **Perfis do VS Code:** a linha de comando instala no perfil **padrão**. Se a janela usa outro perfil (nome no canto inferior esquerdo, no ícone de engrenagem), acrescente `--profile "Nome do perfil"` ao comando — ou instale pelo **Install from VSIX…**, que usa o perfil da janela aberta.
+
 ### 2. Ativar os limites de 5h/7d
 
 Na primeira execução aparece o aviso abaixo. Clique em **Ativar**:
@@ -126,6 +128,10 @@ Na primeira execução aparece o aviso abaixo. Clique em **Ativar**:
 > *Claude Usage: mostrar os limites de 5h e 7d da sua assinatura? Para isso a extensão lê o token do Claude Code neste computador e consulta a API de uso da Anthropic (a cada minuto enquanto você usa o Claude). Nada é enviado a outro lugar.* — **Ativar** · **Agora não**
 
 Se escolher *Agora não*, ative depois pelo comando **Claude Usage: Ativar limites 5h/7d** ou pelo link no painel. Sem essa autorização a extensão funciona (tempo, contexto, custo e turno), só não mostra os limites.
+
+### 3. Mandar a primeira mensagem
+
+Tempo, contexto, custo e turno vêm do histórico que o Claude Code grava para a **pasta aberta**, e esse histórico só existe depois da primeira mensagem. Numa pasta sem conversa, a barra mostra apenas os limites 5h/7d — mande uma mensagem ao Claude e o restante aparece em segundos.
 
 > A extensão oficial do Claude Code para o editor não desenha barras de plugin (`AbovePrompt`/`ui_render`); por isso esta extensão lê os dados da sessão diretamente em vez de depender de um plugin.
 
