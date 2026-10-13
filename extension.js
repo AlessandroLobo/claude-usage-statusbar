@@ -60,7 +60,7 @@ function activate(context) {
       showLimits: c.get('showLimits', true),
       refreshSeconds: Math.max(1, c.get('refreshSeconds', 5)),
       limitsSnapshotPath: c.get('limitsSnapshotPath', ''),
-      limitsStaleMinutes: Math.max(1, c.get('limitsStaleMinutes', 15)),
+      limitsStaleMinutes: Math.max(1, c.get('limitsStaleMinutes', 30)),
       colorFive: c.get('colorSession5h', '#4fc1ff'),
       colorWeek: c.get('colorWeekly7d', '#c586c0'),
     };

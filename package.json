@@ -2,7 +2,7 @@
   "name": "claude-usage-statusbar",
   "displayName": "Claude Usage Status Bar",
   "description": "Mostra o uso do Claude Code no editor: tempo, contexto, limites 5h/7d, custo estimado e turno, na barra de status e num painel lateral.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "publisher": "alessandrolobo",
   "icon": "icon.png",
   "license": "MIT",
@@ -67,9 +67,9 @@
         },
         "claudeUsageBar.limitsStaleMinutes": {
           "type": "number",
-          "default": 15,
+          "default": 30,
           "minimum": 1,
-          "description": "Idade máxima, em minutos, da leitura dos limites; acima disso eles deixam de ser exibidos."
+          "description": "Idade máxima, em minutos, da leitura dos limites (a claude-usage-meter atualiza a cada ~5 min); acima disso eles deixam de ser exibidos. Leituras com mais de 10 min mostram a idade."
         },
         "claudeUsageBar.limitsSnapshotPath": {
           "type": "string",

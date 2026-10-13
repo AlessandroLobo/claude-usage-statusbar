@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="versão" src="https://img.shields.io/badge/vers%C3%A3o-0.3.0-d97757">
+  <img alt="versão" src="https://img.shields.io/badge/vers%C3%A3o-0.3.1-d97757">
   <img alt="licença" src="https://img.shields.io/badge/licen%C3%A7a-MIT-blue">
   <img alt="editores" src="https://img.shields.io/badge/VS%20Code%20%7C%20Antigravity-1.75%2B-007acc">
   <img alt="sem rede" src="https://img.shields.io/badge/telemetria-nenhuma-success">
@@ -58,7 +58,7 @@ Quando o contexto passa de **80%** (ou algum limite passa de **90%**), o item ga
 
 ### De onde vêm os limites de 5h/7d
 
-Eles **não** são calculados pela extensão: vêm do snapshot compartilhado `~/.claude-usage-meter/usage-snapshot.json`, mantido pela extensão [Claude Usage Meter](https://marketplace.visualstudio.com/items?itemName=shivakrishnakokkula.claude-usage-meter) (que consulta a API da Anthropic). Esta extensão só **lê o arquivo** — não faz chamadas de rede e não toca em credenciais. Sem a `claude-usage-meter`, tudo continua funcionando, apenas sem os campos 5h/7d. Leituras com mais de 15 minutos (configurável) e janelas já reiniciadas não são exibidas, para nunca mostrar um número velho como se fosse atual.
+Eles **não** são calculados pela extensão: vêm do snapshot compartilhado `~/.claude-usage-meter/usage-snapshot.json`, mantido pela extensão [Claude Usage Meter](https://marketplace.visualstudio.com/items?itemName=shivakrishnakokkula.claude-usage-meter) (que consulta a API da Anthropic). Esta extensão só **lê o arquivo** — não faz chamadas de rede e não toca em credenciais. Sem a `claude-usage-meter`, tudo continua funcionando, apenas sem os campos 5h/7d. Leituras com mais de 10 minutos aparecem com a idade (`5h 14% ↻4h09 (há 16m)`); com mais de 30 minutos (configurável) e janelas já reiniciadas não são exibidas, para nunca mostrar um número velho como se fosse atual.
 
 ## Instalação
 
@@ -131,7 +131,7 @@ Sem dependências, sem rede, sem telemetria.
 | `claudeUsageBar.showLimits` | `true` | Mostra os limites 5h/7d na barra |
 | `claudeUsageBar.colorSession5h` | `#4fc1ff` | Cor do limite de 5h (hexadecimal ou id de cor do tema, ex.: `charts.blue`; vazio = cor padrão da barra) |
 | `claudeUsageBar.colorWeekly7d` | `#c586c0` | Cor do limite de 7d (idem) |
-| `claudeUsageBar.limitsStaleMinutes` | `15` | Idade máxima da leitura dos limites |
+| `claudeUsageBar.limitsStaleMinutes` | `30` | Idade máxima da leitura dos limites; acima de 10 min ela aparece com a idade (`há 16m`) |
 | `claudeUsageBar.limitsSnapshotPath` | `""` | Caminho do snapshot (vazio = `~/.claude-usage-meter/usage-snapshot.json`) |
 
 ## Preços usados no custo (US$ por 1M de tokens)

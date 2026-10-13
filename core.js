@@ -284,6 +284,7 @@ const readLimits = (now, { snapshotPath, staleMinutes }) => {
     session: pick(raw.report.session),
     weekly: pick(raw.report.weekly),
     receivedAt,
+    ageMs: receivedAt === null ? null : now - receivedAt,
     stale: receivedAt === null || now - receivedAt > staleMinutes * 60_000,
   };
 };
@@ -305,6 +306,10 @@ const liveWindow = (w, limits, now) => {
 };
 
 const resetSuffix = (w, now) => (w.resetsAt === null ? '' : ` ↻${formatRemaining(w.resetsAt - now)}`);
+
+// Leitura que já não é recente (a meter atualiza a cada ~5 min) vem com a idade ao lado.
+const AGED_MS = 10 * 60_000;
+const ageSuffix = limits => (limits && limits.ageMs !== null && limits.ageMs >= AGED_MS ? ` (há ${formatRemaining(limits.ageMs)})` : '');
 
 const render = (snap, now, opts, limits) => {
   const main = [];
@@ -332,11 +337,11 @@ const render = (snap, now, opts, limits) => {
   const week = liveWindow(limits && limits.weekly, limits, now);
   if (opts.showLimits) {
     if (five) {
-      fiveText = `5h ${five.percent}%${resetSuffix(five, now)}`;
+      fiveText = `5h ${five.percent}%${resetSuffix(five, now)}${ageSuffix(limits)}`;
       warnFive = five.percent >= 90;
     }
     if (week) {
-      weekText = `7d ${week.percent}%${resetSuffix(week, now)}`;
+      weekText = `7d ${week.percent}%${resetSuffix(week, now)}${ageSuffix(limits)}`;
       warnWeek = week.percent >= 90;
     }
   }
@@ -406,7 +411,7 @@ const barRow = (title, percent, note, color) => {
 const renderPanel = (snap, now, opts, limits) => {
   const five = liveWindow(limits && limits.session, limits, now);
   const week = liveWindow(limits && limits.weekly, limits, now);
-  const resets = w => (w.resetsAt !== null ? `Reseta em ${formatRemaining(w.resetsAt - now)}` : '');
+  const resets = w => [w.resetsAt !== null ? `Reseta em ${formatRemaining(w.resetsAt - now)}` : '', ageSuffix(limits).trim().replace(/^\((.*)\)$/, 'leitura $1')].filter(Boolean).join(' · ');
   const body = ['<h2>Uso da assinatura</h2>'];
 
   if (five || week) {

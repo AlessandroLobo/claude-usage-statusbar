@@ -108,4 +108,13 @@ assert.strictEqual(core.normalizeColor('red;background:url(x)'), null);
 assert.strictEqual(core.normalizeColor(''), null);
 const html = core.renderPanel(b, at, { ...allOpts, colorFive: '#4fc1ff', colorWeek: 'charts.purple' }, fresh2);
 assert.ok(html.includes('background:#4fc1ff;') && html.includes('var(--vscode-charts-purple)'));
+// leitura com 16 min: ainda vale (limite de 30), mas mostra a idade
+writeSnap(1, at - 16 * 60_000);
+const aged = core.readLimits(at, { snapshotPath: snapFile, staleMinutes: 30 });
+assert.strictEqual(aged.stale, false);
+const agedView = core.render(b, at, allOpts, aged);
+assert.ok(agedView.segments.five.endsWith('(há 16m)'), agedView.segments.five);
+assert.ok(core.renderPanel(b, at, allOpts, aged).includes('leitura há 16m'));
+writeSnap(1, at - 60_000);
+assert.ok(!core.render(b, at, allOpts, core.readLimits(at, lim)).segments.five.includes('há'), 'leitura recente não mostra idade');
 console.log('ok');
