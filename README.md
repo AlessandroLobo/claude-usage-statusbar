@@ -3,15 +3,15 @@
 </p>
 
 <p align="center">
-  <img alt="versão" src="https://img.shields.io/badge/vers%C3%A3o-0.3.1-d97757">
+  <img alt="versão" src="https://img.shields.io/badge/vers%C3%A3o-0.4.0-d97757">
   <img alt="licença" src="https://img.shields.io/badge/licen%C3%A7a-MIT-blue">
   <img alt="editores" src="https://img.shields.io/badge/VS%20Code%20%7C%20Antigravity-1.75%2B-007acc">
   <img alt="sem rede" src="https://img.shields.io/badge/telemetria-nenhuma-success">
 </p>
 
-**Claude Usage Status Bar** mostra, na barra de status do VS Code ou do Antigravity, o uso da sessão atual do **Claude Code**: tempo decorrido, tokens de contexto, **limites de 5h e 7d da assinatura**, custo estimado e duração do turno. Ao clicar, abre um painel lateral com barras de progresso.
+**Claude Usage Status Bar** mostra, na barra de status do VS Code ou do Antigravity, o uso da sessão atual do **Claude Code**: tempo decorrido, tokens de contexto, **limites de 5h e 7d da assinatura**, custo estimado e duração do turno. Ao clicar, abre um painel lateral com barras de progresso. As cores seguem o **tema do editor** (ex.: Everforest).
 
-> 🇬🇧 **English:** VS Code / Antigravity extension that shows the current Claude Code session in the status bar — elapsed time, context tokens, 5-hour / 7-day subscription limits, estimated cost and last-turn duration, plus a sidebar panel with progress bars. The 5h/7d limits are optional and come from the shared snapshot of the `claude-usage-meter` extension. It only reads local transcripts in `~/.claude/projects`: no network access, no telemetry. Download the `.vsix` from [Releases](https://github.com/AlessandroLobo/claude-usage-statusbar/releases) and use *Extensions: Install from VSIX…*. Cost is an estimate based on public API prices, not your actual bill. Unofficial project, not affiliated with Anthropic.
+> 🇬🇧 **English:** VS Code / Antigravity extension that shows the current Claude Code session in the status bar — elapsed time, context tokens, 5-hour / 7-day subscription limits, estimated cost and last-turn duration, plus a sidebar panel with progress bars. Colors come from your editor theme. The 5h/7d limits are optional and come from the shared snapshot of the `claude-usage-meter` extension. It only reads local transcripts in `~/.claude/projects`: no network access, no telemetry. Download the `.vsix` from [Releases](https://github.com/AlessandroLobo/claude-usage-statusbar/releases) and use *Extensions: Install from VSIX…*. Cost is an estimate based on public API prices, not your actual bill. Unofficial project, not affiliated with Anthropic.
 
 ## Como fica
 
@@ -19,31 +19,25 @@
   <img src="docs/statusbar-real.png" alt="Barra de status com o uso da sessão (captura real no Antigravity)" width="520">
 </p>
 
-Passe o mouse para ver os detalhes (modelo, contexto exato, custo e totais de tokens):
+Os limites de **5h** e **7d** são itens separados, cada um com **cor própria** (azul e amarelo da paleta do tema, por padrão), para você achar um e outro de relance. Quando algo se aproxima do limite, a cor muda: contexto a partir de **80%** fica laranja, e limite a partir de **90%** fica vermelho (com o fundo de aviso do tema, se ele definir um):
 
 <p align="center">
-  <img src="docs/tooltip-0.2.png" alt="Tooltip com detalhes da sessão" width="760">
+  <img src="docs/cores-0.4.png" alt="Limites de 5h e 7d em cores diferentes e estados de alerta" width="760">
 </p>
 
-O clique no item abre o painel **Claude Usage** no Explorer, com barras para a sessão de 5h, a semana e o contexto:
+Passe o mouse para ver os detalhes (modelo, contexto exato, custo, totais de tokens e limites):
 
 <p align="center">
-  <img src="docs/panel-0.3.png" alt="Painel lateral com barras de uso" width="340">
+  <img src="docs/tooltip-0.4.png" alt="Tooltip com detalhes da sessão" width="760">
 </p>
 
-Na barra, os limites de **5h** e **7d** são itens separados, cada um com **cor própria** (azul e roxo por padrão), para você achar um e outro de relance:
+O clique abre o painel **Claude Usage** no Explorer, com barras para a sessão de 5h, a semana e o contexto:
 
 <p align="center">
-  <img src="docs/cores-0.3.png" alt="Limites de 5h e 7d em cores diferentes" width="760">
+  <img src="docs/panel-0.4.png" alt="Painel lateral com barras de uso" width="340">
 </p>
 
-Quando o contexto passa de **80%** (ou algum limite passa de **90%**), o item ganha fundo de aviso, para você compactar ou abrir uma nova sessão antes de estourar a janela:
-
-<p align="center">
-  <img src="docs/warning-0.2.png" alt="Aviso de contexto acima de 80%" width="760">
-</p>
-
-> A primeira imagem é uma captura real no Antigravity; o tooltip, o painel e o aviso são ilustrações do visual. As cores seguem o tema do seu editor.
+> A primeira imagem é uma captura real no Antigravity; as demais são ilustrações do visual, aqui no tema Everforest.
 
 ## O que cada campo significa
 
@@ -92,8 +86,6 @@ antigravity-ide --install-extension /tmp/claude-usage-statusbar.vsix --force
 
 No VS Code, troque `antigravity-ide` por `code` (no Antigravity, o comando também pode ser `antigravity`). Depois, *Developer: Reload Window*.
 
-A extensão não se atualiza sozinha quando instalada por `.vsix`: para receber uma versão nova, repita o comando.
-
 > A extensão oficial do Claude Code para o editor não desenha barras de plugin (`AbovePrompt`/`ui_render`); por isso esta extensão lê o transcript da sessão em vez de depender do plugin.
 
 ## Atualização
@@ -115,7 +107,7 @@ Sem dependências, sem rede, sem telemetria.
 
 | Comando | Ação |
 | --- | --- |
-| `Claude Usage: Abrir painel de uso` | Foca o painel lateral (também ao clicar no item da barra) |
+| `Claude Usage: Abrir painel de uso` | Foca o painel lateral (também ao clicar em qualquer item da barra) |
 | `Claude Usage: Atualizar agora` | Força a atualização |
 | `Claude Usage: Mostrar/ocultar barra` | Alterna a visibilidade |
 
@@ -129,10 +121,14 @@ Sem dependências, sem rede, sem telemetria.
 | `claudeUsageBar.showTurn` | `true` | Mostra a duração do turno |
 | `claudeUsageBar.showSessionTime` | `true` | Mostra o tempo da sessão |
 | `claudeUsageBar.showLimits` | `true` | Mostra os limites 5h/7d na barra |
-| `claudeUsageBar.colorSession5h` | `#4fc1ff` | Cor do limite de 5h (hexadecimal ou id de cor do tema, ex.: `charts.blue`; vazio = cor padrão da barra) |
-| `claudeUsageBar.colorWeekly7d` | `#c586c0` | Cor do limite de 7d (idem) |
+| `claudeUsageBar.colorSession5h` | `charts.blue` | Cor do limite de 5h: id de cor do tema (acompanha o tema) ou hexadecimal (`#7fbbb3`); vazio = cor padrão da barra |
+| `claudeUsageBar.colorWeekly7d` | `charts.yellow` | Cor do limite de 7d (idem) |
 | `claudeUsageBar.limitsStaleMinutes` | `30` | Idade máxima da leitura dos limites; acima de 10 min ela aparece com a idade (`há 16m`) |
 | `claudeUsageBar.limitsSnapshotPath` | `""` | Caminho do snapshot (vazio = `~/.claude-usage-meter/usage-snapshot.json`) |
+
+### Cores e temas
+
+Os padrões usam as cores `charts.*` do tema ativo, então a barra se ajusta sozinha ao trocar de tema. No **Everforest** escuro isso dá: 5h `#7fbbb3`, 7d `#dbbc7f`, alerta de contexto `#e69875` e alerta de limite `#e67e80`. Para fixar outra cor, use um id de cor do tema (`charts.green`, `charts.purple`, …) ou um hexadecimal.
 
 ## Preços usados no custo (US$ por 1M de tokens)
 
@@ -155,7 +151,9 @@ node test.js                                                   # testes da lógi
 npx --yes @vscode/vsce package                                 # gera o .vsix
 ```
 
-A lógica (leitura incremental, custo, formatação) está em `core.js`, sem dependência do VS Code; `extension.js` só cria o item da barra. ### Publicar uma versão nova
+A lógica (leitura incremental, custo, formatação) está em `core.js`, sem dependência do VS Code; `extension.js` só cria os itens da barra e o painel.
+
+### Publicar uma versão nova
 
 1. Aumente `version` no `package.json` (sem aumentar, o editor não reconhece como atualização) e **não mude** `publisher`/`name`, que formam o ID da extensão.
 2. `git add -A && git commit -m "feat: ..." && git push`

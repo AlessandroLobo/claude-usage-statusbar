@@ -33,6 +33,7 @@ const toColor = value => {
 
 function activate(context) {
   // Itens separados (prioridade maior = mais à esquerda): só assim cada trecho pode ter cor própria.
+  // A faixa de prioridade é alta e exclusiva para que itens de outras extensões não se encaixem no meio.
   const make = (name, priority) => {
     const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, priority);
     item.name = name;
@@ -40,10 +41,10 @@ function activate(context) {
     return item;
   };
   const items = {
-    main: make('Claude Usage', 103),
-    five: make('Claude Usage 5h', 102),
-    week: make('Claude Usage 7d', 101),
-    tail: make('Claude Usage custo', 100),
+    main: make('Claude Usage', 10003),
+    five: make('Claude Usage 5h', 10002),
+    week: make('Claude Usage 7d', 10001),
+    tail: make('Claude Usage custo', 10000),
   };
   const tracker = new core.Tracker();
   const panel = new PanelProvider();
@@ -61,8 +62,8 @@ function activate(context) {
       refreshSeconds: Math.max(1, c.get('refreshSeconds', 5)),
       limitsSnapshotPath: c.get('limitsSnapshotPath', ''),
       limitsStaleMinutes: Math.max(1, c.get('limitsStaleMinutes', 30)),
-      colorFive: c.get('colorSession5h', '#4fc1ff'),
-      colorWeek: c.get('colorWeekly7d', '#c586c0'),
+      colorFive: c.get('colorSession5h', 'charts.blue'),
+      colorWeek: c.get('colorWeekly7d', 'charts.yellow'),
     };
   };
 
@@ -87,6 +88,8 @@ function activate(context) {
       const tooltip = new vscode.MarkdownString(view.tooltip);
       const warning = new vscode.ThemeColor('statusBarItem.warningBackground');
       const colors = { five: toColor(opts.colorFive), week: toColor(opts.colorWeek) };
+      const red = new vscode.ThemeColor('charts.red');
+      const alertColors = { main: new vscode.ThemeColor('charts.orange'), five: red, week: red, tail: undefined };
 
       const text = { main: view.segments.main, five: view.segments.five, week: view.segments.week, tail: view.segments.tail };
       if (!Object.values(text).some(Boolean)) text.main = view.text;
@@ -98,7 +101,8 @@ function activate(context) {
         }
         item.text = text[key];
         item.tooltip = tooltip;
-        item.color = colors[key];
+        // Em alerta, o texto assume a cor de severidade do tema (o fundo de alerta de alguns temas é igual ao da barra).
+        item.color = view.warn[key] ? alertColors[key] : colors[key];
         item.backgroundColor = view.warn[key] ? warning : undefined;
         item.show();
       }

@@ -2,7 +2,7 @@
   "name": "claude-usage-statusbar",
   "displayName": "Claude Usage Status Bar",
   "description": "Mostra o uso do Claude Code no editor: tempo, contexto, limites 5h/7d, custo estimado e turno, na barra de status e num painel lateral.",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "publisher": "alessandrolobo",
   "icon": "icon.png",
   "license": "MIT",
@@ -78,13 +78,13 @@
         },
         "claudeUsageBar.colorSession5h": {
           "type": "string",
-          "default": "#4fc1ff",
-          "description": "Cor do limite de 5h na barra e no painel: hexadecimal (#4fc1ff) ou id de cor do tema (charts.blue). Vazio = cor padrão da barra."
+          "default": "charts.blue",
+          "description": "Cor do limite de 5h na barra e no painel: id de cor do tema (charts.blue, acompanha o tema) ou hexadecimal (#7fbbb3). Vazio = cor padrão da barra."
         },
         "claudeUsageBar.colorWeekly7d": {
           "type": "string",
-          "default": "#c586c0",
-          "description": "Cor do limite de 7d na barra e no painel: hexadecimal (#c586c0) ou id de cor do tema (charts.purple). Vazio = cor padrão da barra."
+          "default": "charts.yellow",
+          "description": "Cor do limite de 7d na barra e no painel: id de cor do tema (charts.yellow, acompanha o tema) ou hexadecimal (#dbbc7f). Vazio = cor padrão da barra."
         }
       }
     },
