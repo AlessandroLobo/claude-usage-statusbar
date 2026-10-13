@@ -208,6 +208,23 @@ const directMod = require('./direct');
   assert.ok(panelOff.includes('command:claudeUsageBar.enableDirect'));
   assert.ok(core.renderPanel(b, at, { ...allOpts, fetchLimitsDirectly: true, directError: 'falha de rede' }, null).includes('Último erro: falha de rede'));
 
+  // uso do Claude depois da leitura: consulta antes dos 5 min, mas respeitando 1 min de espaçamento
+  const dir5 = fs.mkdtempSync(path.join(os.tmpdir(), 'cub-direct-'));
+  calls = 0;
+  const t0 = Date.now();
+  await directMod.poll({ baseMs: base, dir: dir5, now: t0, fetchImpl: fakeFetch(200, okBody), credentials: cred });
+  assert.strictEqual(calls, 1);
+  await directMod.poll({ baseMs: base, minGapMs: 60_000, wantFresh: true, dir: dir5, now: t0 + 30_000, fetchImpl: fakeFetch(200, okBody), credentials: cred });
+  assert.strictEqual(calls, 1, 'antes de 1 min não consulta, mesmo com uso');
+  await directMod.poll({ baseMs: base, minGapMs: 60_000, wantFresh: false, dir: dir5, now: t0 + 90_000, fetchImpl: fakeFetch(200, okBody), credentials: cred });
+  assert.strictEqual(calls, 1, 'sem uso, espera os 5 min');
+  await directMod.poll({ baseMs: base, minGapMs: 60_000, wantFresh: true, dir: dir5, now: Date.now() + 90_000, fetchImpl: fakeFetch(200, okBody), credentials: cred });
+  assert.strictEqual(calls, 2, 'com uso, consulta após 1 min');
+  // durante recuo por erro, o uso não antecipa a consulta
+  const s5 = JSON.parse(fs.readFileSync(path.join(dir5, 'usage.json'), 'utf8'));
+  fs.writeFileSync(path.join(dir5, 'usage.json'), JSON.stringify({ ...s5, failures: 1, nextPollAt: Date.now() + 3_600_000, lastAttemptAt: 0 }));
+  await directMod.poll({ baseMs: base, minGapMs: 60_000, wantFresh: true, dir: dir5, fetchImpl: fakeFetch(200, okBody), credentials: cred });
+  assert.strictEqual(calls, 2, 'recuo respeitado');
   console.log('ok');
 })().catch(e => {
   console.error(e);

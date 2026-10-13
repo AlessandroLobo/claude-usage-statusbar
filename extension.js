@@ -73,6 +73,7 @@ function activate(context) {
       // Extensões desativadas não aparecem em getExtension.
       meterActive: Boolean(vscode.extensions.getExtension(METER_ID)),
       directRefreshMinutes: Math.max(3, c.get('directRefreshMinutes', 5)),
+      activeRefreshSeconds: Math.max(30, c.get('activeRefreshSeconds', 60)),
       colorFive: c.get('colorSession5h', 'charts.blue'),
       colorWeek: c.get('colorWeekly7d', 'charts.yellow'),
     };
@@ -87,18 +88,18 @@ function activate(context) {
     if (opts.fetchLimitsDirectly || opts.meterActive || context.globalState.get(CONSENT_ASKED)) return;
     await context.globalState.update(CONSENT_ASKED, true);
     const choice = await vscode.window.showInformationMessage(
-      'Claude Usage: mostrar os limites de 5h e 7d da sua assinatura? Para isso a extensão lê o token do Claude Code neste computador e consulta a API de uso da Anthropic a cada 5 minutos. Nada é enviado a outro lugar.',
+      'Claude Usage: mostrar os limites de 5h e 7d da sua assinatura? Para isso a extensão lê o token do Claude Code neste computador e consulta a API de uso da Anthropic (a cada minuto enquanto você usa o Claude). Nada é enviado a outro lugar.',
       'Ativar',
       'Agora não',
     );
     if (choice === 'Ativar') await enableDirect();
   };
 
-  const pollIfDue = opts => {
+  const pollIfDue = (opts, wantFresh) => {
     if (polling) return;
     polling = true;
     direct
-      .poll({ baseMs: opts.directRefreshMinutes * 60_000 })
+      .poll({ baseMs: opts.directRefreshMinutes * 60_000, minGapMs: opts.activeRefreshSeconds * 1000, wantFresh })
       .then(
         fetched => fetched && update(),
         () => {},
@@ -121,9 +122,11 @@ function activate(context) {
       const meterLimits = core.readLimits(now, { snapshotPath: opts.limitsSnapshotPath, staleMinutes: opts.limitsStaleMinutes });
       let directLimits = null;
       if (opts.fetchLimitsDirectly) {
-        pollIfDue(opts);
         const shared = direct.readShared(now, opts.limitsStaleMinutes);
         directLimits = shared.limits;
+        // Uso do Claude depois da última leitura: os limites mudaram, vale consultar antes do intervalo.
+        const activity = snap && snap.lastActivityAt;
+        pollIfDue(opts, Boolean(activity && (!directLimits || activity > directLimits.receivedAt)));
         opts.directError = shared.lastError;
       }
       const limits = core.pickLimits(meterLimits, directLimits);

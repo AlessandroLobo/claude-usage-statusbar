@@ -2,7 +2,7 @@
   "name": "claude-usage-statusbar",
   "displayName": "Claude Usage Status Bar",
   "description": "Barra de status para VS Code e Antigravity com o uso do Claude Code: tempo, contexto, limites 5h/7d, custo estimado e turno, mais um painel lateral.",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "publisher": "alessandrolobo",
   "icon": "icon.png",
   "license": "MIT",
@@ -104,7 +104,13 @@
           "type": "number",
           "default": 5,
           "minimum": 3,
-          "description": "Intervalo, em minutos, da consulta direta (com recuo automático em caso de limitação da API)."
+          "description": "Intervalo, em minutos, da consulta dos limites quando o Claude está parado (com recuo automático em caso de limitação da API)."
+        },
+        "claudeUsageBar.activeRefreshSeconds": {
+          "type": "number",
+          "default": 60,
+          "minimum": 30,
+          "description": "Enquanto o Claude está sendo usado, consulta os limites com este espaçamento mínimo, em segundos (no máximo uma consulta por computador nesse intervalo)."
         }
       }
     },

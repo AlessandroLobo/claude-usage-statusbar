@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="versão" src="https://img.shields.io/badge/vers%C3%A3o-0.6.1-e69875">
+  <img alt="versão" src="https://img.shields.io/badge/vers%C3%A3o-0.7.0-e69875">
   <img alt="VS Code" src="https://img.shields.io/badge/VS%20Code-1.82%2B-7fbbb3">
   <img alt="Antigravity" src="https://img.shields.io/badge/Antigravity-suportado-a7c080">
   <img alt="licença" src="https://img.shields.io/badge/licen%C3%A7a-MIT-dbbc7f">
@@ -12,7 +12,7 @@
 
 **Claude Usage Status Bar** é uma extensão para **VS Code** e **Antigravity** que mostra, na barra de status, o uso da sessão atual do **Claude Code**: tempo decorrido, tokens de contexto, **limites de 5h e 7d da assinatura**, custo estimado e duração do turno. Um clique abre um painel lateral com barras de progresso. As cores seguem o **tema do editor**.
 
-> 🇬🇧 **English:** Extension for **VS Code 1.82+** and **Antigravity** that shows the current Claude Code session in the status bar — elapsed time, context tokens, 5-hour / 7-day subscription limits, estimated cost and last-turn duration — plus a sidebar panel with progress bars. Colors follow your editor theme. It reads local transcripts in `~/.claude/projects`. The 5h/7d limits come from Anthropic's (undocumented) usage endpoint, queried only after you allow it on first run: the extension then reads Claude Code's OAuth token (credentials file, or the Keychain on macOS) and polls once every 5 minutes per machine, shared across windows and editors. No telemetry. Download the `.vsix` from [Releases](https://github.com/AlessandroLobo/claude-usage-statusbar/releases). Cost is an estimate based on public API prices, not your actual bill. Unofficial project, not affiliated with Anthropic.
+> 🇬🇧 **English:** Extension for **VS Code 1.82+** and **Antigravity** that shows the current Claude Code session in the status bar — elapsed time, context tokens, 5-hour / 7-day subscription limits, estimated cost and last-turn duration — plus a sidebar panel with progress bars. Colors follow your editor theme. It reads local transcripts in `~/.claude/projects`. The 5h/7d limits come from Anthropic's (undocumented) usage endpoint, queried only after you allow it on first run: the extension then reads Claude Code's OAuth token (credentials file, or the Keychain on macOS) and polls about once a minute while Claude is in use (every 5 minutes when idle), once per machine, shared across windows and editors. No telemetry. Download the `.vsix` from [Releases](https://github.com/AlessandroLobo/claude-usage-statusbar/releases). Cost is an estimate based on public API prices, not your actual bill. Unofficial project, not affiliated with Anthropic.
 
 ## Compatibilidade
 
@@ -123,7 +123,7 @@ Depois de instalar por linha de comando, use **Developer: Reload Window** no edi
 
 Na primeira execução aparece o aviso abaixo. Clique em **Ativar**:
 
-> *Claude Usage: mostrar os limites de 5h e 7d da sua assinatura? Para isso a extensão lê o token do Claude Code neste computador e consulta a API de uso da Anthropic a cada 5 minutos. Nada é enviado a outro lugar.* — **Ativar** · **Agora não**
+> *Claude Usage: mostrar os limites de 5h e 7d da sua assinatura? Para isso a extensão lê o token do Claude Code neste computador e consulta a API de uso da Anthropic (a cada minuto enquanto você usa o Claude). Nada é enviado a outro lugar.* — **Ativar** · **Agora não**
 
 Se escolher *Agora não*, ative depois pelo comando **Claude Usage: Ativar limites 5h/7d** ou pelo link no painel. Sem essa autorização a extensão funciona (tempo, contexto, custo e turno), só não mostra os limites.
 
@@ -136,12 +136,12 @@ Depois da autorização, a própria extensão consulta a API de uso da Anthropic
 | | |
 | --- | --- |
 | **Token** | Lido de `~/.claude/.credentials.json` (Windows/Linux) ou do **Keychain** (macOS). Somente leitura: nunca é gravado, registrado nem enviado a outro destino que não a API da Anthropic. Token prestes a vencer não é usado — o Claude Code o renova sozinho. |
-| **Frequência** | Uma consulta a cada 5 min (`claudeUsageBar.directRefreshMinutes`, mínimo 3) **por computador**: as janelas abertas — inclusive VS Code e Antigravity ao mesmo tempo — dividem o resultado em `~/.claude-usage-statusbar/usage.json`, e uma trava garante que só uma delas consulte. Ao voltar para a janela, os números são conferidos na hora. |
+| **Frequência** | **Enquanto você usa o Claude**, a cada **1 min** (`claudeUsageBar.activeRefreshSeconds`, mínimo 30 s): a cada nova resposta do Claude depois da última leitura, os limites são consultados de novo, respeitando esse espaçamento. **Com o Claude parado**, a cada **5 min** (`claudeUsageBar.directRefreshMinutes`, mínimo 3). Sempre **uma consulta por computador**: as janelas abertas — inclusive VS Code e Antigravity ao mesmo tempo — dividem o resultado em `~/.claude-usage-statusbar/usage.json`, e uma trava garante que só uma delas consulte. Ao voltar para a janela, os números são conferidos na hora. |
 | **Limitação da API** | Em HTTP 429 a extensão espera o `Retry-After` (ou recua sozinha, até 60 min) e continua mostrando a última leitura, com a idade. |
 | **Idade** | Leituras com mais de 10 min aparecem com a idade (`5h 14% ↻4h09 (há 16m)`); com mais de 30 min (`limitsStaleMinutes`) ou janela já reiniciada, não são exibidas. |
 | **Erros** | O painel mostra o último erro (token recusado, falha de rede, 429…). |
 
-O endpoint **não é documentado** pela Anthropic: pode mudar sem aviso. Os limites podem ficar alguns minutos atrás do painel de conta da extensão do Claude Code, que recebe os valores a cada resposta.
+O endpoint **não é documentado** pela Anthropic: pode mudar sem aviso. Os limites podem ficar até cerca de 1 minuto atrás do painel de conta da extensão do Claude Code, que recebe os valores a cada resposta. Consultas mais frequentes não são recomendadas: o endpoint limita o número de chamadas, e um HTTP 429 deixaria os limites parados por até 60 min.
 
 **Opcional:** se a extensão [Claude Usage Meter](https://open-vsx.org/extension/shivakrishnakokkula/claude-usage-meter) estiver instalada, a leitura dela também é aproveitada (vale a mais recente). Ela **não é necessária**.
 
@@ -182,7 +182,8 @@ Sem dependências e sem telemetria. Rede: só a consulta de uso à API da Anthro
 | `claudeUsageBar.colorSession5h` | `charts.blue` | Cor do limite de 5h (veja [Cores](#cores)) |
 | `claudeUsageBar.colorWeekly7d` | `charts.yellow` | Cor do limite de 7d (veja [Cores](#cores)) |
 | `claudeUsageBar.fetchLimitsDirectly` | `false` | Consulta dos limites à API de uso; ligada pelo **Ativar** do aviso |
-| `claudeUsageBar.directRefreshMinutes` | `5` | Intervalo da consulta, por computador (mínimo 3) |
+| `claudeUsageBar.activeRefreshSeconds` | `60` | Espaçamento das consultas enquanto o Claude está em uso (mínimo 30) |
+| `claudeUsageBar.directRefreshMinutes` | `5` | Intervalo das consultas com o Claude parado (mínimo 3) |
 | `claudeUsageBar.limitsStaleMinutes` | `30` | Idade máxima da leitura dos limites; acima de 10 min ela aparece com a idade |
 | `claudeUsageBar.refreshLimits` | `true` | Com a `claude-usage-meter` (opcional) ativa e a consulta direta desligada, pede a ela uma leitura nova após 6 min |
 | `claudeUsageBar.limitsSnapshotPath` | `""` | Snapshot da `claude-usage-meter` opcional (vazio = `~/.claude-usage-meter/usage-snapshot.json`) |

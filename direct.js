@@ -122,15 +122,20 @@ const request = async (fetchImpl, token) => {
 };
 
 // Consulta a API se for a vez desta máquina; devolve true quando gravou uma leitura nova.
-const poll = async ({ baseMs, dir = storeDir(), now = Date.now(), fetchImpl = globalThis.fetch, credentials = loadCredentials }) => {
+// Com `wantFresh` (houve uso do Claude depois da última leitura), consulta antes do intervalo,
+// respeitando o espaçamento mínimo e nunca durante um recuo por erro.
+const isDue = (store, now, wantFresh, minGapMs) =>
+  now >= store.nextPollAt || (wantFresh && !(store.failures > 0) && now - (store.lastAttemptAt || 0) >= minGapMs);
+
+const poll = async ({ baseMs, minGapMs = 60_000, wantFresh = false, dir = storeDir(), now = Date.now(), fetchImpl = globalThis.fetch, credentials = loadCredentials }) => {
   if (typeof fetchImpl !== 'function') return false;
-  if (now < (readStore(dir) || emptyStore()).nextPollAt) return false;
+  if (!isDue(readStore(dir) || emptyStore(), now, wantFresh, minGapMs)) return false;
   const release = acquireLock(dir, now);
   if (!release) return false;
   try {
     // Outra janela pode ter consultado entre a primeira leitura e a trava.
     const store = readStore(dir) || emptyStore();
-    if (now < store.nextPollAt) return false;
+    if (!isDue(store, now, wantFresh, minGapMs)) return false;
 
     const cred = await credentials();
     if (cred.error || (cred.expiresAt !== null && cred.expiresAt - EXPIRY_SKEW_MS <= now)) {

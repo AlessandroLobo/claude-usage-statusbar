@@ -239,6 +239,7 @@ class Tracker {
       totals,
       running,
       turnMs,
+      lastActivityAt: main.assistantTs,
     };
   }
 }
