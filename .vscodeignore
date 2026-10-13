@@ -1,0 +1,6 @@
+.github/**
+.gitignore
+*.vsix
+test.js
+Instalar.ps1
+docs/**

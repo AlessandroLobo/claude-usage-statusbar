@@ -1,0 +1,78 @@
+{
+  "name": "claude-usage-statusbar",
+  "displayName": "Claude Usage Status Bar",
+  "description": "Mostra na barra de status o uso da sessão atual do Claude Code: tempo, contexto, custo estimado e duração do turno.",
+  "version": "0.1.0",
+  "publisher": "alessandrolobo",
+  "icon": "icon.png",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "claudeUsageBar.refresh",
+        "title": "Claude Usage: Atualizar agora"
+      },
+      {
+        "command": "claudeUsageBar.toggle",
+        "title": "Claude Usage: Mostrar/ocultar barra"
+      }
+    ],
+    "configuration": {
+      "title": "Claude Usage Status Bar",
+      "properties": {
+        "claudeUsageBar.contextWindow": {
+          "type": "number",
+          "default": 0,
+          "description": "Janela de contexto em tokens. 0 = automático pelo modelo (1M para a família 5, 200k para modelos antigos)."
+        },
+        "claudeUsageBar.refreshSeconds": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "description": "Intervalo de atualização, em segundos."
+        },
+        "claudeUsageBar.showCost": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostra o custo estimado da sessão (calculado pela tabela de preços da API)."
+        },
+        "claudeUsageBar.showTurn": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostra a duração do último turno."
+        },
+        "claudeUsageBar.showSessionTime": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostra o tempo desde o início da sessão."
+        }
+      }
+    }
+  },
+  "author": "Alessandro Lobo",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AlessandroLobo/claude-usage-statusbar.git"
+  },
+  "homepage": "https://github.com/AlessandroLobo/claude-usage-statusbar#readme",
+  "bugs": {
+    "url": "https://github.com/AlessandroLobo/claude-usage-statusbar/issues"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "statusbar",
+    "usage",
+    "antigravity"
+  ]
+}
