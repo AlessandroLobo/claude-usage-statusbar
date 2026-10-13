@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/banner.png" alt="Claude Usage Status Bar" width="100%">
+  <img src="docs/banner-0.2.png" alt="Claude Usage Status Bar" width="100%">
 </p>
 
 <p align="center">
@@ -16,13 +16,13 @@
 ## Como fica
 
 <p align="center">
-  <img src="docs/statusbar.png" alt="Barra de status com o uso da sessão" width="760">
+  <img src="docs/statusbar-real.png" alt="Barra de status com o uso da sessão (captura real no Antigravity)" width="520">
 </p>
 
 Passe o mouse para ver os detalhes (modelo, contexto exato, custo e totais de tokens):
 
 <p align="center">
-  <img src="docs/tooltip.png" alt="Tooltip com detalhes da sessão" width="760">
+  <img src="docs/tooltip-0.2.png" alt="Tooltip com detalhes da sessão" width="760">
 </p>
 
 O clique no item abre o painel **Claude Usage** no Explorer, com barras para a sessão de 5h, a semana e o contexto:
@@ -34,10 +34,10 @@ O clique no item abre o painel **Claude Usage** no Explorer, com barras para a s
 Quando o contexto passa de **80%** (ou algum limite passa de **90%**), o item ganha fundo de aviso, para você compactar ou abrir uma nova sessão antes de estourar a janela:
 
 <p align="center">
-  <img src="docs/warning.png" alt="Aviso de contexto acima de 80%" width="760">
+  <img src="docs/warning-0.2.png" alt="Aviso de contexto acima de 80%" width="760">
 </p>
 
-> As imagens são ilustrações do visual da barra; as cores seguem o tema do seu editor.
+> A primeira imagem é uma captura real no Antigravity; o tooltip, o painel e o aviso são ilustrações do visual. As cores seguem o tema do seu editor.
 
 ## O que cada campo significa
 
