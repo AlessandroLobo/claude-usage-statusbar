@@ -307,33 +307,43 @@ const liveWindow = (w, limits, now) => {
 const resetSuffix = (w, now) => (w.resetsAt === null ? '' : ` ↻${formatRemaining(w.resetsAt - now)}`);
 
 const render = (snap, now, opts, limits) => {
-  const parts = [];
+  const main = [];
+  const tail = [];
   const lines = ['**Claude Code — sessão atual**', '', '| | |', '|---|---|'];
-  let warn = false;
+  let warnMain = false;
+  let warnFive = false;
+  let warnWeek = false;
+  let fiveText = null;
+  let weekText = null;
 
   if (snap) {
     const window = contextWindow(snap.model, opts.contextWindow);
-    if (opts.showSessionTime && snap.startedAt !== null) parts.push(`$(clock) ${formatElapsed(now - snap.startedAt)}`);
+    if (opts.showSessionTime && snap.startedAt !== null) main.push(`$(clock) ${formatElapsed(now - snap.startedAt)}`);
     if (snap.ctxTokens !== null) {
       const pct = Math.round((snap.ctxTokens / window) * 100);
-      parts.push(`${formatTokens(snap.ctxTokens)}/${formatTokens(window)} (${pct}%)`);
-      warn = pct >= 80;
+      main.push(`${formatTokens(snap.ctxTokens)}/${formatTokens(window)} (${pct}%)`);
+      warnMain = pct >= 80;
     } else {
-      parts.push(`–/${formatTokens(window)}`);
+      main.push(`–/${formatTokens(window)}`);
     }
   }
 
   const five = liveWindow(limits && limits.session, limits, now);
   const week = liveWindow(limits && limits.weekly, limits, now);
   if (opts.showLimits) {
-    if (five) parts.push(`5h ${five.percent}%${resetSuffix(five, now)}`);
-    if (week) parts.push(`7d ${week.percent}%${resetSuffix(week, now)}`);
-    warn = warn || [five, week].some(w => w && w.percent >= 90);
+    if (five) {
+      fiveText = `5h ${five.percent}%${resetSuffix(five, now)}`;
+      warnFive = five.percent >= 90;
+    }
+    if (week) {
+      weekText = `7d ${week.percent}%${resetSuffix(week, now)}`;
+      warnWeek = week.percent >= 90;
+    }
   }
 
   if (snap) {
-    if (opts.showCost) parts.push(`US$ ${snap.costUsd.toFixed(2)}`);
-    if (opts.showTurn && snap.turnMs !== null) parts.push(`turno ${formatTurn(snap.turnMs)}${snap.running ? ' ▶' : ''}`);
+    if (opts.showCost) tail.push(`US$ ${snap.costUsd.toFixed(2)}`);
+    if (opts.showTurn && snap.turnMs !== null) tail.push(`turno ${formatTurn(snap.turnMs)}${snap.running ? ' ▶' : ''}`);
     const window = contextWindow(snap.model, opts.contextWindow);
     const t = snap.totals;
     lines.push(
@@ -351,17 +361,46 @@ const render = (snap, now, opts, limits) => {
   if (limits && limits.receivedAt !== null) {
     lines.push(`Limites lidos da claude-usage-meter às ${clock(limits.receivedAt)}${limits.stale ? ' (desatualizados, não exibidos)' : ''}.`);
   }
-  return { text: parts.length ? parts.join(' · ') : '$(clock) Claude: sem dados', tooltip: lines.join('\n'), warn };
+  const segments = {
+    main: main.length ? main.join(' · ') : null,
+    five: fiveText,
+    week: weekText,
+    tail: tail.length ? tail.join(' · ') : null,
+  };
+  const all = [segments.main, segments.five, segments.week, segments.tail].filter(Boolean);
+  return {
+    text: all.length ? all.join(' · ') : '$(clock) Claude: sem dados',
+    segments,
+    warn: { main: warnMain, five: warnFive, week: warnWeek },
+    tooltip: lines.join('\n'),
+  };
 };
+
+// Aceita "#rgb"/"#rrggbb" ou id de cor do tema ("charts.blue"); qualquer outra coisa é ignorada.
+const normalizeColor = v => {
+  if (typeof v !== 'string') return null;
+  const s = v.trim();
+  return /^#[0-9a-fA-F]{3,8}$/.test(s) || /^[a-zA-Z][a-zA-Z0-9.]*$/.test(s) ? s : null;
+};
+
+const cssColor = c => (c.startsWith('#') ? c : `var(--vscode-${c.replace(/\./g, '-')})`);
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 const barClass = p => (p >= 80 ? 'hi' : p >= 50 ? 'mid' : 'ok');
 
-const barRow = (title, percent, note) =>
-  `<div class="row"><div class="top"><span>${esc(title)}</span><span>${percent}%</span></div>` +
-  `<div class="track"><div class="fill ${barClass(percent)}" style="width:${Math.min(100, Math.max(0, percent))}%"></div></div>` +
-  `<div class="sub">${esc(note)}</div></div>`;
+// Com `color`, título, percentual e barra usam a cor de identidade até 80%; acima disso vale a cor de alerta.
+const barRow = (title, percent, note, color) => {
+  const own = color ? cssColor(color) : null;
+  const alert = percent >= 80;
+  const fill = own && !alert ? `background:${own};` : '';
+  const ink = own ? ` style="color:${own}"` : '';
+  return (
+    `<div class="row"><div class="top"><span${ink}>${esc(title)}</span><span${ink}>${percent}%</span></div>` +
+    `<div class="track"><div class="fill ${fill ? '' : barClass(percent)}" style="${fill}width:${Math.min(100, Math.max(0, percent))}%"></div></div>` +
+    `<div class="sub">${esc(note)}</div></div>`
+  );
+};
 
 // HTML do painel lateral (barras de uso). Sem scripts; atualizado trocando o HTML.
 const renderPanel = (snap, now, opts, limits) => {
@@ -371,8 +410,8 @@ const renderPanel = (snap, now, opts, limits) => {
   const body = ['<h2>Uso da assinatura</h2>'];
 
   if (five || week) {
-    if (five) body.push(barRow('Sessão (5h)', five.percent, resets(five)));
-    if (week) body.push(barRow('Semanal (7 dias)', week.percent, resets(week)));
+    if (five) body.push(barRow('Sessão (5h)', five.percent, resets(five), normalizeColor(opts.colorFive)));
+    if (week) body.push(barRow('Semanal (7 dias)', week.percent, resets(week), normalizeColor(opts.colorWeek)));
   } else {
     const why =
       limits && limits.stale
@@ -424,4 +463,5 @@ module.exports = {
   formatElapsed,
   formatTurn,
   formatRemaining,
+  normalizeColor,
 };

@@ -25,10 +25,26 @@ class PanelProvider {
   }
 }
 
+const toColor = value => {
+  const c = core.normalizeColor(value);
+  if (!c) return undefined;
+  return c.startsWith('#') ? c : new vscode.ThemeColor(c);
+};
+
 function activate(context) {
-  const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  item.name = 'Claude Usage';
-  item.command = 'claudeUsageBar.openPanel';
+  // Itens separados (prioridade maior = mais à esquerda): só assim cada trecho pode ter cor própria.
+  const make = (name, priority) => {
+    const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, priority);
+    item.name = name;
+    item.command = 'claudeUsageBar.openPanel';
+    return item;
+  };
+  const items = {
+    main: make('Claude Usage', 103),
+    five: make('Claude Usage 5h', 102),
+    week: make('Claude Usage 7d', 101),
+    tail: make('Claude Usage custo', 100),
+  };
   const tracker = new core.Tracker();
   const panel = new PanelProvider();
   let hidden = false;
@@ -45,8 +61,12 @@ function activate(context) {
       refreshSeconds: Math.max(1, c.get('refreshSeconds', 5)),
       limitsSnapshotPath: c.get('limitsSnapshotPath', ''),
       limitsStaleMinutes: Math.max(1, c.get('limitsStaleMinutes', 15)),
+      colorFive: c.get('colorSession5h', '#4fc1ff'),
+      colorWeek: c.get('colorWeekly7d', '#c586c0'),
     };
   };
+
+  const hideAll = () => Object.values(items).forEach(i => i.hide());
 
   const update = () => {
     try {
@@ -60,18 +80,32 @@ function activate(context) {
       panel.set(core.renderPanel(snap, now, opts, limits));
 
       if (hidden) {
-        item.hide();
+        hideAll();
         return;
       }
       const view = core.render(snap, now, opts, limits);
-      item.text = view.text;
-      item.tooltip = new vscode.MarkdownString(view.tooltip);
-      item.backgroundColor = view.warn ? new vscode.ThemeColor('statusBarItem.warningBackground') : undefined;
-      item.show();
+      const tooltip = new vscode.MarkdownString(view.tooltip);
+      const warning = new vscode.ThemeColor('statusBarItem.warningBackground');
+      const colors = { five: toColor(opts.colorFive), week: toColor(opts.colorWeek) };
+
+      const text = { main: view.segments.main, five: view.segments.five, week: view.segments.week, tail: view.segments.tail };
+      if (!Object.values(text).some(Boolean)) text.main = view.text;
+
+      for (const [key, item] of Object.entries(items)) {
+        if (!text[key]) {
+          item.hide();
+          continue;
+        }
+        item.text = text[key];
+        item.tooltip = tooltip;
+        item.color = colors[key];
+        item.backgroundColor = view.warn[key] ? warning : undefined;
+        item.show();
+      }
     } catch (e) {
-      item.text = '$(warning) Claude';
-      item.tooltip = `claude-usage-statusbar: ${e && e.message ? e.message : e}`;
-      item.show();
+      items.main.text = '$(warning) Claude';
+      items.main.tooltip = `claude-usage-statusbar: ${e && e.message ? e.message : e}`;
+      items.main.show();
     }
   };
 
@@ -81,7 +115,7 @@ function activate(context) {
   };
 
   context.subscriptions.push(
-    item,
+    ...Object.values(items),
     { dispose: () => clearInterval(timer) },
     vscode.window.registerWebviewViewProvider('claudeUsageBar.panel', panel),
     vscode.commands.registerCommand('claudeUsageBar.refresh', update),

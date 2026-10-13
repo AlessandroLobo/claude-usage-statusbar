@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="versão" src="https://img.shields.io/badge/vers%C3%A3o-0.2.0-d97757">
+  <img alt="versão" src="https://img.shields.io/badge/vers%C3%A3o-0.3.0-d97757">
   <img alt="licença" src="https://img.shields.io/badge/licen%C3%A7a-MIT-blue">
   <img alt="editores" src="https://img.shields.io/badge/VS%20Code%20%7C%20Antigravity-1.75%2B-007acc">
   <img alt="sem rede" src="https://img.shields.io/badge/telemetria-nenhuma-success">
@@ -28,7 +28,13 @@ Passe o mouse para ver os detalhes (modelo, contexto exato, custo e totais de to
 O clique no item abre o painel **Claude Usage** no Explorer, com barras para a sessão de 5h, a semana e o contexto:
 
 <p align="center">
-  <img src="docs/panel.png" alt="Painel lateral com barras de uso" width="340">
+  <img src="docs/panel-0.3.png" alt="Painel lateral com barras de uso" width="340">
+</p>
+
+Na barra, os limites de **5h** e **7d** são itens separados, cada um com **cor própria** (azul e roxo por padrão), para você achar um e outro de relance:
+
+<p align="center">
+  <img src="docs/cores-0.3.png" alt="Limites de 5h e 7d em cores diferentes" width="760">
 </p>
 
 Quando o contexto passa de **80%** (ou algum limite passa de **90%**), o item ganha fundo de aviso, para você compactar ou abrir uma nova sessão antes de estourar a janela:
@@ -90,6 +96,15 @@ A extensão não se atualiza sozinha quando instalada por `.vsix`: para receber 
 
 > A extensão oficial do Claude Code para o editor não desenha barras de plugin (`AbovePrompt`/`ui_render`); por isso esta extensão lê o transcript da sessão em vez de depender do plugin.
 
+## Atualização
+
+| Como você instalou | Como atualizar |
+| --- | --- |
+| `.vsix` (Releases) | **Manual:** rode de novo o comando de [instalar ou atualizar](#instalar-ou-atualizar-com-um-comando) e use *Developer: Reload Window*. O editor não avisa que há versão nova — acompanhe a página de [Releases](https://github.com/AlessandroLobo/claude-usage-statusbar/releases) (botão *Watch → Custom → Releases* avisa por e-mail). |
+| Open VSX / Marketplace (quando publicada lá) | **Automática:** o editor atualiza sozinho ou em *Extensões → Atualizar*. |
+
+As configurações `claudeUsageBar.*` são mantidas na atualização.
+
 ## Como funciona
 
 A cada 5 segundos, a extensão localiza o transcript mais recente em `~/.claude/projects/<pasta-aberta>/*.jsonl` (respeita `CLAUDE_CONFIG_DIR`) e lê **apenas o trecho acrescentado** desde a última leitura. Contexto, tempo e turno vêm dos registros da sessão; os limites 5h/7d vêm do snapshot da `claude-usage-meter`; o custo é calculado pelos `usage` de cada resposta e a tabela de preços abaixo, incluindo os transcripts de subagentes. Mensagens repetidas no arquivo (mesmo `id`) são contadas uma vez.
@@ -114,6 +129,8 @@ Sem dependências, sem rede, sem telemetria.
 | `claudeUsageBar.showTurn` | `true` | Mostra a duração do turno |
 | `claudeUsageBar.showSessionTime` | `true` | Mostra o tempo da sessão |
 | `claudeUsageBar.showLimits` | `true` | Mostra os limites 5h/7d na barra |
+| `claudeUsageBar.colorSession5h` | `#4fc1ff` | Cor do limite de 5h (hexadecimal ou id de cor do tema, ex.: `charts.blue`; vazio = cor padrão da barra) |
+| `claudeUsageBar.colorWeekly7d` | `#c586c0` | Cor do limite de 7d (idem) |
 | `claudeUsageBar.limitsStaleMinutes` | `15` | Idade máxima da leitura dos limites |
 | `claudeUsageBar.limitsSnapshotPath` | `""` | Caminho do snapshot (vazio = `~/.claude-usage-meter/usage-snapshot.json`) |
 
@@ -138,7 +155,12 @@ node test.js                                                   # testes da lógi
 npx --yes @vscode/vsce package                                 # gera o .vsix
 ```
 
-A lógica (leitura incremental, custo, formatação) está em `core.js`, sem dependência do VS Code; `extension.js` só cria o item da barra. Para publicar uma versão: atualize `version` no `package.json`, crie a tag `vX.Y.Z` e dê push — o workflow `release.yml` gera o `.vsix` e o Release.
+A lógica (leitura incremental, custo, formatação) está em `core.js`, sem dependência do VS Code; `extension.js` só cria o item da barra. ### Publicar uma versão nova
+
+1. Aumente `version` no `package.json` (sem aumentar, o editor não reconhece como atualização) e **não mude** `publisher`/`name`, que formam o ID da extensão.
+2. `git add -A && git commit -m "feat: ..." && git push`
+3. `git tag vX.Y.Z && git push origin vX.Y.Z` — o workflow `release.yml` roda o teste, gera o `.vsix` e cria o Release com `claude-usage-statusbar-X.Y.Z.vsix` e `claude-usage-statusbar.vsix` (nome fixo usado pelo comando de instalação).
+4. Avise quem instalou por `.vsix` para repetir o comando de atualização.
 
 ## Privacidade e aviso
 

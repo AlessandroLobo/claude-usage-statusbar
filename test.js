@@ -95,4 +95,17 @@ assert.strictEqual(core.readLimits(at, lim), null, 'versão desconhecida do snap
 assert.strictEqual(core.readLimits(at, { snapshotPath: path.join(path.dirname(file), 'nao-existe.json'), staleMinutes: 15 }), null);
 assert.ok(core.render(b, at, allOpts, null).text.includes('US$'), 'sem snapshot a barra segue funcionando');
 
+// trechos separados (cada um vira um item da barra) e cores de identidade
+writeSnap(1, at - 60_000);
+const fresh2 = core.readLimits(at, lim);
+const seg = core.render(b, at, allOpts, fresh2);
+assert.ok(seg.segments.five.startsWith('5h 12%') && seg.segments.week.startsWith('7d 49%'));
+assert.ok(seg.segments.main.includes('/1M') && seg.segments.tail.includes('US$'));
+assert.deepStrictEqual(seg.warn, { main: false, five: false, week: false });
+assert.strictEqual(core.normalizeColor('#4fc1ff'), '#4fc1ff');
+assert.strictEqual(core.normalizeColor('charts.blue'), 'charts.blue');
+assert.strictEqual(core.normalizeColor('red;background:url(x)'), null);
+assert.strictEqual(core.normalizeColor(''), null);
+const html = core.renderPanel(b, at, { ...allOpts, colorFive: '#4fc1ff', colorWeek: 'charts.purple' }, fresh2);
+assert.ok(html.includes('background:#4fc1ff;') && html.includes('var(--vscode-charts-purple)'));
 console.log('ok');
