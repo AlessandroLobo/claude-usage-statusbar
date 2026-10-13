@@ -50,6 +50,7 @@ function activate(context) {
   const panel = new PanelProvider();
   let hidden = false;
   let timer;
+  let lastNudge = 0;
 
   const options = () => {
     const c = vscode.workspace.getConfiguration('claudeUsageBar');
@@ -62,6 +63,7 @@ function activate(context) {
       refreshSeconds: Math.max(1, c.get('refreshSeconds', 5)),
       limitsSnapshotPath: c.get('limitsSnapshotPath', ''),
       limitsStaleMinutes: Math.max(1, c.get('limitsStaleMinutes', 30)),
+      refreshLimits: c.get('refreshLimits', true),
       colorFive: c.get('colorSession5h', 'charts.blue'),
       colorWeek: c.get('colorWeekly7d', 'charts.yellow'),
     };
@@ -77,6 +79,12 @@ function activate(context) {
       const session = core.findSession(paths);
       const snap = session ? tracker.update(session.file, now) : null;
       const limits = core.readLimits(now, { snapshotPath: opts.limitsSnapshotPath, staleMinutes: opts.limitsStaleMinutes });
+
+      if (opts.refreshLimits && core.shouldNudge(limits, now, lastNudge)) {
+        lastNudge = now;
+        // A meter é quem consulta a API e controla o limite de requisições; aqui só pedimos que releia.
+        Promise.resolve(vscode.commands.executeCommand('claudeUsageMeter.refresh')).then(update, () => {});
+      }
 
       panel.set(core.renderPanel(snap, now, opts, limits));
 

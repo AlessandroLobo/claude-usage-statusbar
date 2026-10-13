@@ -456,7 +456,16 @@ table{border-collapse:collapse;width:100%}td{padding:2px 0}td:first-child{color:
 </style></head><body>${body.join('')}</body></html>`;
 };
 
+// Pede à claude-usage-meter uma leitura nova quando a atual envelheceu, no máximo uma vez por intervalo.
+const NUDGE_AFTER_MS = 6 * 60_000;
+const NUDGE_EVERY_MS = 5 * 60_000;
+const shouldNudge = (limits, now, lastNudge) => {
+  const age = limits && limits.ageMs !== null ? limits.ageMs : Infinity;
+  return age >= NUDGE_AFTER_MS && now - lastNudge >= NUDGE_EVERY_MS;
+};
+
 module.exports = {
+  shouldNudge,
   Tracker,
   findSession,
   render,

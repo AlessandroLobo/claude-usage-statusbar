@@ -2,7 +2,7 @@
   "name": "claude-usage-statusbar",
   "displayName": "Claude Usage Status Bar",
   "description": "Mostra o uso do Claude Code no editor: tempo, contexto, limites 5h/7d, custo estimado e turno, na barra de status e num painel lateral.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "publisher": "alessandrolobo",
   "icon": "icon.png",
   "license": "MIT",
@@ -85,6 +85,11 @@
           "type": "string",
           "default": "charts.yellow",
           "description": "Cor do limite de 7d na barra e no painel: id de cor do tema (charts.yellow, acompanha o tema) ou hexadecimal (#dbbc7f). Vazio = cor padrão da barra."
+        },
+        "claudeUsageBar.refreshLimits": {
+          "type": "boolean",
+          "default": true,
+          "description": "Quando a leitura dos limites tem mais de 6 min, pede à extensão claude-usage-meter que atualize (comando claudeUsageMeter.refresh, no máximo 1 vez a cada 5 min)."
         }
       }
     },

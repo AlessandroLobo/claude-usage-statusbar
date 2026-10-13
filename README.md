@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="versão" src="https://img.shields.io/badge/vers%C3%A3o-0.4.0-d97757">
+  <img alt="versão" src="https://img.shields.io/badge/vers%C3%A3o-0.4.1-d97757">
   <img alt="licença" src="https://img.shields.io/badge/licen%C3%A7a-MIT-blue">
   <img alt="editores" src="https://img.shields.io/badge/VS%20Code%20%7C%20Antigravity-1.75%2B-007acc">
   <img alt="sem rede" src="https://img.shields.io/badge/telemetria-nenhuma-success">
@@ -53,6 +53,8 @@ O clique abre o painel **Claude Usage** no Explorer, com barras para a sessão d
 ### De onde vêm os limites de 5h/7d
 
 Eles **não** são calculados pela extensão: vêm do snapshot compartilhado `~/.claude-usage-meter/usage-snapshot.json`, mantido pela extensão [Claude Usage Meter](https://marketplace.visualstudio.com/items?itemName=shivakrishnakokkula.claude-usage-meter) (que consulta a API da Anthropic). Esta extensão só **lê o arquivo** — não faz chamadas de rede e não toca em credenciais. Sem a `claude-usage-meter`, tudo continua funcionando, apenas sem os campos 5h/7d. Leituras com mais de 10 minutos aparecem com a idade (`5h 14% ↻4h09 (há 16m)`); com mais de 30 minutos (configurável) e janelas já reiniciadas não são exibidas, para nunca mostrar um número velho como se fosse atual.
+
+Quando a leitura passa de 6 minutos, a extensão **pede à `claude-usage-meter` que atualize** (comando `claudeUsageMeter.refresh`, no máximo 1 vez a cada 5 minutos; desligue em `claudeUsageBar.refreshLimits`). Quem consulta a API continua sendo a meter. Por isso os limites podem ficar até alguns minutos atrás do painel de conta da extensão do Claude Code, que recebe os valores em tempo real a cada resposta.
 
 ## Instalação
 
@@ -124,6 +126,7 @@ Sem dependências, sem rede, sem telemetria.
 | `claudeUsageBar.colorSession5h` | `charts.blue` | Cor do limite de 5h: id de cor do tema (acompanha o tema) ou hexadecimal (`#7fbbb3`); vazio = cor padrão da barra |
 | `claudeUsageBar.colorWeekly7d` | `charts.yellow` | Cor do limite de 7d (idem) |
 | `claudeUsageBar.limitsStaleMinutes` | `30` | Idade máxima da leitura dos limites; acima de 10 min ela aparece com a idade (`há 16m`) |
+| `claudeUsageBar.refreshLimits` | `true` | Pede à `claude-usage-meter` que atualize quando a leitura tem mais de 6 min |
 | `claudeUsageBar.limitsSnapshotPath` | `""` | Caminho do snapshot (vazio = `~/.claude-usage-meter/usage-snapshot.json`) |
 
 ### Cores e temas

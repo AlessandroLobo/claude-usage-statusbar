@@ -117,4 +117,10 @@ assert.ok(agedView.segments.five.endsWith('(há 16m)'), agedView.segments.five);
 assert.ok(core.renderPanel(b, at, allOpts, aged).includes('leitura há 16m'));
 writeSnap(1, at - 60_000);
 assert.ok(!core.render(b, at, allOpts, core.readLimits(at, lim)).segments.five.includes('há'), 'leitura recente não mostra idade');
+// pedido de atualização à meter: só com leitura velha e no máximo a cada 5 min
+const L = ageMs => ({ ageMs });
+assert.strictEqual(core.shouldNudge(L(2 * 60_000), 1_000_000, 0), false, 'leitura recente não pede');
+assert.strictEqual(core.shouldNudge(L(7 * 60_000), 1_000_000, 0), true);
+assert.strictEqual(core.shouldNudge(L(7 * 60_000), 1_000_000, 1_000_000 - 60_000), false, 'respeita o intervalo');
+assert.strictEqual(core.shouldNudge(null, 1_000_000, 0), true, 'sem snapshot também pede');
 console.log('ok');
