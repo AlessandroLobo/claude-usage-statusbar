@@ -146,4 +146,70 @@ assert.strictEqual(core.pickLimits(oldMeter, fresh3).session.percent, 22, 'a lei
 assert.strictEqual(core.pickLimits(oldMeter, null), oldMeter);
 assert.strictEqual(core.pickLimits(null, null), null);
 assert.ok(core.render(b, at, allOpts, fresh3).tooltip.includes('direto da API'));
-console.log('ok');
+// consulta direta: uma por máquina, cache compartilhado, recuo e credencial vencida
+const directMod = require('./direct');
+(async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cub-direct-'));
+  const okBody = { five_hour: { utilization: 22, resets_at: '2026-01-01T13:00:00Z' }, seven_day: { utilization: 51, resets_at: '2026-01-02T00:00:00Z' } };
+  let calls = 0;
+  const fakeFetch = (status, body, headers = {}) => async () => {
+    calls++;
+    await new Promise(r => setTimeout(r, 20));
+    return { status, headers: { get: k => headers[k.toLowerCase()] ?? null }, json: async () => body };
+  };
+  const cred = async () => ({ token: 't', expiresAt: null });
+  const base = 5 * 60_000;
+
+  // duas janelas ao mesmo tempo: só uma consulta
+  const [a, b2] = await Promise.all([
+    directMod.poll({ baseMs: base, dir, fetchImpl: fakeFetch(200, okBody), credentials: cred }),
+    directMod.poll({ baseMs: base, dir, fetchImpl: fakeFetch(200, okBody), credentials: cred }),
+  ]);
+  assert.strictEqual(calls, 1, 'trava entre janelas');
+  assert.ok(a !== b2);
+  const shared = directMod.readShared(Date.now(), 30, dir);
+  assert.strictEqual(shared.limits.session.percent, 22);
+  assert.strictEqual(shared.limits.source, 'direto');
+
+  // dentro do intervalo, ninguém consulta de novo
+  assert.strictEqual(await directMod.poll({ baseMs: base, dir, fetchImpl: fakeFetch(200, okBody), credentials: cred }), false);
+  assert.strictEqual(calls, 1);
+
+  // 429: mantém a leitura anterior, registra o erro e respeita o Retry-After
+  const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'cub-direct-'));
+  await directMod.poll({ baseMs: base, dir: dir2, fetchImpl: fakeFetch(200, okBody), credentials: cred });
+  const store2 = JSON.parse(fs.readFileSync(path.join(dir2, 'usage.json'), 'utf8'));
+  fs.writeFileSync(path.join(dir2, 'usage.json'), JSON.stringify({ ...store2, nextPollAt: 0 }));
+  const before = Date.now();
+  await directMod.poll({ baseMs: base, dir: dir2, fetchImpl: fakeFetch(429, null, { 'retry-after': '1200' }), credentials: cred });
+  const after429 = JSON.parse(fs.readFileSync(path.join(dir2, 'usage.json'), 'utf8'));
+  assert.strictEqual(after429.limits.session.percent, 22, 'leitura anterior preservada');
+  assert.ok(after429.lastError.includes('429'));
+  assert.ok(after429.nextPollAt - before >= 20 * 60_000 - 1000, 'Retry-After de 20 min respeitado');
+
+  // credencial vencida: não chama a API
+  const dir3 = fs.mkdtempSync(path.join(os.tmpdir(), 'cub-direct-'));
+  calls = 0;
+  await directMod.poll({ baseMs: base, dir: dir3, fetchImpl: fakeFetch(200, okBody), credentials: async () => ({ token: 't', expiresAt: Date.now() + 60_000 }) });
+  assert.strictEqual(calls, 0, 'token prestes a vencer não é usado');
+  assert.ok(directMod.readShared(Date.now(), 30, dir3).lastError.includes('vencido'));
+
+  // trava abandonada há mais de 60 s é retomada
+  const dir4 = fs.mkdtempSync(path.join(os.tmpdir(), 'cub-direct-'));
+  fs.writeFileSync(path.join(dir4, 'poll.lock'), JSON.stringify({ at: Date.now() - 120_000 }));
+  assert.ok(directMod.acquireLock(dir4, Date.now()), 'trava velha expira');
+  assert.strictEqual(directMod.acquireLock(dir4, Date.now()), null, 'trava nova bloqueia');
+
+  assert.strictEqual(directMod.parseRetryAfter('120', 0), 120_000);
+  assert.strictEqual(directMod.parseRetryAfter(null, 0), null);
+  assert.deepStrictEqual(core.parseCredentials('{"claudeAiOauth":{"accessToken":"x","expiresAt":5}}'), { token: 'x', expiresAt: 5 });
+  assert.ok(core.parseCredentials('lixo').error);
+  const panelOff = core.renderPanel(b, at, { ...allOpts, fetchLimitsDirectly: false }, null);
+  assert.ok(panelOff.includes('command:claudeUsageBar.enableDirect'));
+  assert.ok(core.renderPanel(b, at, { ...allOpts, fetchLimitsDirectly: true, directError: 'falha de rede' }, null).includes('Último erro: falha de rede'));
+
+  console.log('ok');
+})().catch(e => {
+  console.error(e);
+  process.exit(1);
+});

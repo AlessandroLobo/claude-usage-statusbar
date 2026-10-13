@@ -2,8 +2,10 @@
 
 const vscode = require('vscode');
 const core = require('./core');
+const direct = require('./direct');
 
-const USAGE_URL = 'https://api.anthropic.com/api/oauth/usage';
+const CONSENT_ASKED = 'claudeUsageBar.directConsentAsked';
+const METER_ID = 'shivakrishnakokkula.claude-usage-meter';
 
 class PanelProvider {
   constructor() {
@@ -13,7 +15,7 @@ class PanelProvider {
 
   resolveWebviewView(view) {
     this.view = view;
-    view.webview.options = { enableScripts: false };
+    view.webview.options = { enableScripts: false, enableCommandUris: true };
     view.webview.html = this.html;
     view.onDidDispose(() => {
       if (this.view === view) this.view = null;
@@ -53,6 +55,7 @@ function activate(context) {
   let hidden = false;
   let timer;
   let lastNudge = 0;
+  let polling = false;
 
   const options = () => {
     const c = vscode.workspace.getConfiguration('claudeUsageBar');
@@ -67,63 +70,42 @@ function activate(context) {
       limitsStaleMinutes: Math.max(1, c.get('limitsStaleMinutes', 30)),
       refreshLimits: c.get('refreshLimits', true),
       fetchLimitsDirectly: c.get('fetchLimitsDirectly', false),
+      // Extensões desativadas não aparecem em getExtension.
+      meterActive: Boolean(vscode.extensions.getExtension(METER_ID)),
       directRefreshMinutes: Math.max(3, c.get('directRefreshMinutes', 5)),
       colorFive: c.get('colorSession5h', 'charts.blue'),
       colorWeek: c.get('colorWeekly7d', 'charts.yellow'),
     };
   };
 
-  // Consulta opcional (desligada por padrão) ao mesmo endpoint usado pela claude-usage-meter.
-  let own = null;
-  let nextPollAt = 0;
-  let failures = 0;
-  let polling = false;
+  const enableDirect = () =>
+    vscode.workspace.getConfiguration('claudeUsageBar').update('fetchLimitsDirectly', true, vscode.ConfigurationTarget.Global);
 
-  const pollDirect = async opts => {
-    const now = Date.now();
-    if (polling || now < nextPollAt || typeof fetch !== 'function') return false;
+  // Pergunta uma única vez; sem o "Ativar", a extensão não lê o token nem usa a rede.
+  const askConsent = async () => {
+    const opts = options();
+    if (opts.fetchLimitsDirectly || opts.meterActive || context.globalState.get(CONSENT_ASKED)) return;
+    await context.globalState.update(CONSENT_ASKED, true);
+    const choice = await vscode.window.showInformationMessage(
+      'Claude Usage: mostrar os limites de 5h e 7d da sua assinatura? Para isso a extensão lê o token do Claude Code neste computador e consulta a API de uso da Anthropic a cada 5 minutos. Nada é enviado a outro lugar.',
+      'Ativar',
+      'Agora não',
+    );
+    if (choice === 'Ativar') await enableDirect();
+  };
+
+  const pollIfDue = opts => {
+    if (polling) return;
     polling = true;
-    let status = 0;
-    let retryAfterMs = null;
-    try {
-      const cred = core.readCredentials();
-      if (cred.error || (cred.expiresAt !== null && cred.expiresAt <= now)) {
-        // O próprio Claude Code renova o token; só olhamos de novo em instantes.
-        nextPollAt = now + 60_000;
-        return false;
-      }
-      const ctl = new AbortController();
-      const timeout = setTimeout(() => ctl.abort(), 15_000);
-      try {
-        const res = await fetch(USAGE_URL, {
-          headers: {
-            Authorization: 'Bearer ' + cred.token,
-            'anthropic-beta': 'oauth-2025-04-20',
-            'anthropic-version': '2023-06-01',
-            Accept: 'application/json',
-            'User-Agent': 'claude-usage-statusbar',
-          },
-          signal: ctl.signal,
-        });
-        status = res.status;
-        const retryAfter = Number(res.headers.get('retry-after'));
-        retryAfterMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : null;
-        if (status === 200) {
-          const parsed = core.parseUsageBody(await res.json(), Date.now());
-          if (parsed) own = parsed;
-          else status = 0;
-        }
-      } finally {
-        clearTimeout(timeout);
-      }
-    } catch {
-      status = 0;
-    } finally {
-      polling = false;
-      failures = status === 200 ? 0 : failures + 1;
-      nextPollAt = Date.now() + core.nextPollDelay({ status, retryAfterMs, failures }, opts.directRefreshMinutes * 60_000);
-    }
-    return status === 200;
+    direct
+      .poll({ baseMs: opts.directRefreshMinutes * 60_000 })
+      .then(
+        fetched => fetched && update(),
+        () => {},
+      )
+      .finally(() => {
+        polling = false;
+      });
   };
 
   const hideAll = () => Object.values(items).forEach(i => i.hide());
@@ -135,11 +117,18 @@ function activate(context) {
       const paths = (vscode.workspace.workspaceFolders || []).map(f => f.uri.fsPath);
       const session = core.findSession(paths);
       const snap = session ? tracker.update(session.file, now) : null;
-      const meterLimits = core.readLimits(now, { snapshotPath: opts.limitsSnapshotPath, staleMinutes: opts.limitsStaleMinutes });
-      if (opts.fetchLimitsDirectly) pollDirect(opts).then(fetched => fetched && update());
-      const limits = core.pickLimits(meterLimits, opts.fetchLimitsDirectly ? core.withAge(own, now, opts.limitsStaleMinutes) : null);
 
-      if (!opts.fetchLimitsDirectly && opts.refreshLimits && core.shouldNudge(limits, now, lastNudge)) {
+      const meterLimits = core.readLimits(now, { snapshotPath: opts.limitsSnapshotPath, staleMinutes: opts.limitsStaleMinutes });
+      let directLimits = null;
+      if (opts.fetchLimitsDirectly) {
+        pollIfDue(opts);
+        const shared = direct.readShared(now, opts.limitsStaleMinutes);
+        directLimits = shared.limits;
+        opts.directError = shared.lastError;
+      }
+      const limits = core.pickLimits(meterLimits, directLimits);
+
+      if (!opts.fetchLimitsDirectly && opts.meterActive && opts.refreshLimits && core.shouldNudge(limits, now, lastNudge)) {
         lastNudge = now;
         // A meter é quem consulta a API e controla o limite de requisições; aqui só pedimos que releia.
         Promise.resolve(vscode.commands.executeCommand('claudeUsageMeter.refresh')).then(update, () => {});
@@ -190,6 +179,7 @@ function activate(context) {
     { dispose: () => clearInterval(timer) },
     vscode.window.registerWebviewViewProvider('claudeUsageBar.panel', panel),
     vscode.commands.registerCommand('claudeUsageBar.refresh', update),
+    vscode.commands.registerCommand('claudeUsageBar.enableDirect', enableDirect),
     vscode.commands.registerCommand('claudeUsageBar.openPanel', () => vscode.commands.executeCommand('claudeUsageBar.panel.focus')),
     vscode.commands.registerCommand('claudeUsageBar.toggle', () => {
       hidden = !hidden;
@@ -202,10 +192,13 @@ function activate(context) {
       }
     }),
     vscode.workspace.onDidChangeWorkspaceFolders(update),
+    // Ao voltar para a janela os números precisam estar certos, mesmo depois de o computador hibernar.
+    vscode.window.onDidChangeWindowState(state => state.focused && update()),
   );
 
   schedule();
   update();
+  askConsent().catch(() => {});
 }
 
 function deactivate() {}

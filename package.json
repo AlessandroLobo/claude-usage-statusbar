@@ -2,7 +2,7 @@
   "name": "claude-usage-statusbar",
   "displayName": "Claude Usage Status Bar",
   "description": "Mostra o uso do Claude Code no editor: tempo, contexto, limites 5h/7d, custo estimado e turno, na barra de status e num painel lateral.",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publisher": "alessandrolobo",
   "icon": "icon.png",
   "license": "MIT",
@@ -29,6 +29,10 @@
       {
         "command": "claudeUsageBar.openPanel",
         "title": "Claude Usage: Abrir painel de uso"
+      },
+      {
+        "command": "claudeUsageBar.enableDirect",
+        "title": "Claude Usage: Ativar limites 5h/7d (consulta à API de uso)"
       }
     ],
     "configuration": {
@@ -63,7 +67,7 @@
         "claudeUsageBar.showLimits": {
           "type": "boolean",
           "default": true,
-          "description": "Mostra os limites de 5h e 7d (lidos do snapshot da extensão claude-usage-meter)."
+          "description": "Mostra os limites de 5h e 7d na barra."
         },
         "claudeUsageBar.limitsStaleMinutes": {
           "type": "number",
@@ -74,7 +78,7 @@
         "claudeUsageBar.limitsSnapshotPath": {
           "type": "string",
           "default": "",
-          "description": "Caminho do usage-snapshot.json da claude-usage-meter. Vazio = ~/.claude-usage-meter/usage-snapshot.json."
+          "description": "Caminho do usage-snapshot.json da extensão opcional claude-usage-meter. Vazio = ~/.claude-usage-meter/usage-snapshot.json."
         },
         "claudeUsageBar.colorSession5h": {
           "type": "string",
@@ -89,12 +93,12 @@
         "claudeUsageBar.refreshLimits": {
           "type": "boolean",
           "default": true,
-          "description": "Quando a leitura dos limites tem mais de 6 min, pede à extensão claude-usage-meter que atualize (comando claudeUsageMeter.refresh, no máximo 1 vez a cada 5 min)."
+          "description": "Se a extensão opcional claude-usage-meter estiver ativa e a consulta direta desligada, pede a ela uma leitura nova quando a atual tem mais de 6 min."
         },
         "claudeUsageBar.fetchLimitsDirectly": {
           "type": "boolean",
           "default": false,
-          "description": "Consulta diretamente https://api.anthropic.com/api/oauth/usage (endpoint não documentado, o mesmo da claude-usage-meter) para obter os limites 5h/7d em tempo quase real. Lê o token OAuth do Claude Code em ~/.claude/.credentials.json (somente leitura) e usa a leitura mais recente entre esta e a da meter. Desligado por padrão."
+          "description": "Obtém os limites 5h/7d consultando https://api.anthropic.com/api/oauth/usage (endpoint não documentado). Lê o token do Claude Code (~/.claude/.credentials.json; no macOS, o Keychain) somente para essa consulta; várias janelas dividem uma única consulta por intervalo. É ativada pelo aviso na primeira execução ou pelo comando \"Claude Usage: Ativar limites 5h/7d\"."
         },
         "claudeUsageBar.directRefreshMinutes": {
           "type": "number",

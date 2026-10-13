@@ -310,14 +310,21 @@ const parseUsageBody = (body, receivedAt) => {
 };
 
 // Somente leitura: o token nunca é gravado, registrado nem enviado a outro destino que não a API da Anthropic.
-const readCredentials = () => {
-  const file = path.join(claudeDir(), '.credentials.json');
+const parseCredentials = text => {
   try {
-    const oauth = JSON.parse(fs.readFileSync(file, 'utf8')).claudeAiOauth;
-    if (!oauth || typeof oauth.accessToken !== 'string' || !oauth.accessToken) return { error: 'sem token' };
+    const oauth = JSON.parse(text).claudeAiOauth;
+    if (!oauth || typeof oauth.accessToken !== 'string' || !oauth.accessToken) return { error: 'credencial do Claude Code sem token' };
     return { token: oauth.accessToken, expiresAt: typeof oauth.expiresAt === 'number' ? oauth.expiresAt : null };
   } catch {
-    return { error: 'credenciais ilegíveis' };
+    return { error: 'credencial do Claude Code ilegível' };
+  }
+};
+
+const readCredentials = () => {
+  try {
+    return parseCredentials(fs.readFileSync(path.join(claudeDir(), '.credentials.json'), 'utf8'));
+  } catch {
+    return { error: 'credencial do Claude Code não encontrada (faça login no Claude Code)' };
   }
 };
 
@@ -465,10 +472,11 @@ const renderPanel = (snap, now, opts, limits) => {
     if (five) body.push(barRow('Sessão (5h)', five.percent, resets(five), normalizeColor(opts.colorFive)));
     if (week) body.push(barRow('Semanal (7 dias)', week.percent, resets(week), normalizeColor(opts.colorWeek)));
   } else {
-    const why =
-      limits && limits.stale
-        ? `Leitura dos limites desatualizada (última às ${clock(limits.receivedAt)}).`
-        : 'Limites 5h/7d indisponíveis: instale e mantenha ativa a extensão <b>claude-usage-meter</b> ou ligue <code>claudeUsageBar.fetchLimitsDirectly</code>.';
+    const enable = '<a href="command:claudeUsageBar.enableDirect">ativar os limites 5h/7d</a>';
+    const hint = opts.fetchLimitsDirectly
+      ? `Aguardando a consulta à API de uso.${opts.directError ? ` Último erro: ${esc(opts.directError)}.` : ''}`
+      : `Clique para ${enable} (lê o token do Claude Code e consulta a API de uso da Anthropic).`;
+    const why = `${limits && limits.stale ? `Leitura dos limites desatualizada (última às ${clock(limits.receivedAt)}).` : 'Limites 5h/7d indisponíveis.'} ${hint}`;
     body.push(`<div class="sub">${why}</div>`);
   }
 
@@ -499,6 +507,7 @@ h2{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;
 .fill{height:100%;border-radius:3px}
 .ok{background:var(--vscode-charts-green,#89d185)}.mid{background:var(--vscode-charts-yellow,#cca700)}.hi{background:var(--vscode-charts-red,#f14c4c)}
 .sub{font-size:11px;color:var(--vscode-descriptionForeground);margin-top:5px;line-height:1.4}
+a{color:var(--vscode-textLink-foreground)}
 table{border-collapse:collapse;width:100%}td{padding:2px 0}td:first-child{color:var(--vscode-descriptionForeground);padding-right:12px;white-space:nowrap}td:last-child{text-align:right;word-break:break-all}
 </style></head><body>${body.join('')}</body></html>`;
 };
@@ -514,6 +523,7 @@ const shouldNudge = (limits, now, lastNudge) => {
 module.exports = {
   shouldNudge,
   parseUsageBody,
+  parseCredentials,
   readCredentials,
   nextPollDelay,
   pickLimits,
