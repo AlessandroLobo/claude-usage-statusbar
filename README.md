@@ -127,7 +127,11 @@ Na primeira execução aparece o aviso abaixo. Clique em **Ativar**:
 
 > *Claude Usage: mostrar os limites de 5h e 7d da sua assinatura? Para isso a extensão lê o token do Claude Code neste computador e consulta a API de uso da Anthropic (a cada minuto enquanto você usa o Claude). Nada é enviado a outro lugar.* — **Ativar** · **Agora não**
 
-Se escolher *Agora não*, ative depois pelo comando **Claude Usage: Ativar limites 5h/7d** ou pelo link no painel. Sem essa autorização a extensão funciona (tempo, contexto, custo e turno), só não mostra os limites.
+O aviso aparece **uma única vez** por editor. Fechar no X, deixar sumir ou clicar em *Agora não* tem o mesmo efeito: os limites não aparecem, a extensão não lê o token nem usa a rede, e o aviso **não volta**. O restante (tempo, contexto, custo e turno) funciona normalmente. Para ativar depois:
+
+- clique no link **ativar os limites 5h/7d** que o painel *Claude Usage* mostra no lugar das barras;
+- ou rode `Ctrl+Shift+P` → **Claude Usage: Ativar limites 5h/7d**;
+- ou, se o aviso só sumiu da tela, abra-o pelo **sino de notificações** no canto inferior direito.
 
 ### 3. Mandar a primeira mensagem
 
@@ -158,7 +162,7 @@ O endpoint **não é documentado** pela Anthropic: pode mudar sem aviso. Os limi
 | `.vsix` (Releases) | **Manual:** rode de novo o [comando de instalação](#1-instalar-a-extensão) do seu editor e use *Developer: Reload Window*. O editor não avisa que há versão nova — acompanhe a página de [Releases](https://github.com/AlessandroLobo/claude-usage-statusbar/releases) (*Watch → Custom → Releases* avisa por e-mail). |
 | Open VSX / Marketplace (quando publicada lá) | **Automática:** o editor atualiza sozinho ou em *Extensões → Atualizar*. |
 
-As configurações `claudeUsageBar.*` e a autorização dos limites são mantidas na atualização.
+As configurações `claudeUsageBar.*` e a autorização dos limites são mantidas na atualização. Quem não atualizar continua com a versão que tem, funcionando normalmente — só não recebe as novidades.
 
 ## Como funciona
 
