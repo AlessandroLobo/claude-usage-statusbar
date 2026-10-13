@@ -1,8 +1,8 @@
 {
   "name": "claude-usage-statusbar",
   "displayName": "Claude Usage Status Bar",
-  "description": "Mostra na barra de status o uso da sessão atual do Claude Code: tempo, contexto, custo estimado e duração do turno.",
-  "version": "0.1.0",
+  "description": "Mostra o uso do Claude Code no editor: tempo, contexto, limites 5h/7d, custo estimado e turno, na barra de status e num painel lateral.",
+  "version": "0.2.0",
   "publisher": "alessandrolobo",
   "icon": "icon.png",
   "license": "MIT",
@@ -25,6 +25,10 @@
       {
         "command": "claudeUsageBar.toggle",
         "title": "Claude Usage: Mostrar/ocultar barra"
+      },
+      {
+        "command": "claudeUsageBar.openPanel",
+        "title": "Claude Usage: Abrir painel de uso"
       }
     ],
     "configuration": {
@@ -55,8 +59,33 @@
           "type": "boolean",
           "default": true,
           "description": "Mostra o tempo desde o início da sessão."
+        },
+        "claudeUsageBar.showLimits": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostra os limites de 5h e 7d (lidos do snapshot da extensão claude-usage-meter)."
+        },
+        "claudeUsageBar.limitsStaleMinutes": {
+          "type": "number",
+          "default": 15,
+          "minimum": 1,
+          "description": "Idade máxima, em minutos, da leitura dos limites; acima disso eles deixam de ser exibidos."
+        },
+        "claudeUsageBar.limitsSnapshotPath": {
+          "type": "string",
+          "default": "",
+          "description": "Caminho do usage-snapshot.json da claude-usage-meter. Vazio = ~/.claude-usage-meter/usage-snapshot.json."
         }
       }
+    },
+    "views": {
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "claudeUsageBar.panel",
+          "name": "Claude Usage"
+        }
+      ]
     }
   },
   "author": "Alessandro Lobo",

@@ -263,34 +263,165 @@ const formatTurn = ms => {
   return `${Math.floor(s / 60)}:${`${s % 60}`.padStart(2, '0')}`;
 };
 
-const render = (snap, now, opts) => {
-  const window = contextWindow(snap.model, opts.contextWindow);
-  const parts = [];
-  if (opts.showSessionTime && snap.startedAt !== null) parts.push(`$(clock) ${formatElapsed(now - snap.startedAt)}`);
-  let pct = null;
-  if (snap.ctxTokens !== null) {
-    pct = Math.round((snap.ctxTokens / window) * 100);
-    parts.push(`${formatTokens(snap.ctxTokens)}/${formatTokens(window)} (${pct}%)`);
-  } else {
-    parts.push(`–/${formatTokens(window)}`);
-  }
-  if (opts.showCost) parts.push(`US$ ${snap.costUsd.toFixed(2)}`);
-  if (opts.showTurn && snap.turnMs !== null) parts.push(`turno ${formatTurn(snap.turnMs)}${snap.running ? ' ▶' : ''}`);
+// Limites de 5h/7d: lidos do snapshot compartilhado da extensão claude-usage-meter
+// (sem rede e sem tocar em credenciais). Qualquer divergência de formato => sem limites.
+const limitsSnapshotPath = override => override || path.join(os.homedir(), '.claude-usage-meter', 'usage-snapshot.json');
 
-  const t = snap.totals;
-  const lines = [
-    `**Claude Code — sessão atual**`,
-    ``,
-    `| | |`,
-    `|---|---|`,
-    `| Modelo | ${snap.model ?? '–'} |`,
-    `| Contexto | ${snap.ctxTokens === null ? '–' : snap.ctxTokens.toLocaleString('pt-BR')} / ${window.toLocaleString('pt-BR')} tokens |`,
-    `| Custo estimado | US$ ${snap.costUsd.toFixed(4)}${snap.unpriced ? ' (há modelo sem preço conhecido)' : ''} |`,
-    `| Tokens (soma) | in ${formatTokens(t.input)} · out ${formatTokens(t.output)} · cache lido ${formatTokens(t.cacheRead)} · cache escrito ${formatTokens(t.cacheWrite)} |`,
-    ``,
-    `Custo calculado pela tabela de preços da API a partir do transcript (inclui subagentes); não é o valor de cobrança.`,
-  ];
-  return { text: parts.join(' · '), tooltip: lines.join('\n'), pct };
+const readLimits = (now, { snapshotPath, staleMinutes }) => {
+  let raw;
+  try {
+    raw = JSON.parse(fs.readFileSync(limitsSnapshotPath(snapshotPath), 'utf8'));
+  } catch {
+    return null;
+  }
+  if (!raw || raw.v !== 1 || !raw.report) return null;
+  const pick = w =>
+    w && typeof w.utilization === 'number'
+      ? { percent: Math.round(w.utilization), resetsAt: typeof w.resetsAt === 'number' ? w.resetsAt : null }
+      : null;
+  const receivedAt = typeof raw.report.receivedAt === 'number' ? raw.report.receivedAt : null;
+  return {
+    session: pick(raw.report.session),
+    weekly: pick(raw.report.weekly),
+    receivedAt,
+    stale: receivedAt === null || now - receivedAt > staleMinutes * 60_000,
+  };
 };
 
-module.exports = { Tracker, findSession, render, messageCost, contextWindow, formatTokens, formatElapsed, formatTurn };
+const formatRemaining = ms => {
+  const min = Math.max(0, Math.floor(ms / 60_000));
+  if (min >= 1440) return `${Math.floor(min / 1440)}d ${Math.floor((min % 1440) / 60)}h`;
+  if (min >= 60) return `${Math.floor(min / 60)}h${`${min % 60}`.padStart(2, '0')}`;
+  return `${min}m`;
+};
+
+const clock = ms => new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+// Janela utilizável: leitura recente e ainda não reiniciada.
+const liveWindow = (w, limits, now) => {
+  if (!w || !limits || limits.stale) return null;
+  if (w.resetsAt !== null && w.resetsAt <= now) return null;
+  return w;
+};
+
+const resetSuffix = (w, now) => (w.resetsAt === null ? '' : ` ↻${formatRemaining(w.resetsAt - now)}`);
+
+const render = (snap, now, opts, limits) => {
+  const parts = [];
+  const lines = ['**Claude Code — sessão atual**', '', '| | |', '|---|---|'];
+  let warn = false;
+
+  if (snap) {
+    const window = contextWindow(snap.model, opts.contextWindow);
+    if (opts.showSessionTime && snap.startedAt !== null) parts.push(`$(clock) ${formatElapsed(now - snap.startedAt)}`);
+    if (snap.ctxTokens !== null) {
+      const pct = Math.round((snap.ctxTokens / window) * 100);
+      parts.push(`${formatTokens(snap.ctxTokens)}/${formatTokens(window)} (${pct}%)`);
+      warn = pct >= 80;
+    } else {
+      parts.push(`–/${formatTokens(window)}`);
+    }
+  }
+
+  const five = liveWindow(limits && limits.session, limits, now);
+  const week = liveWindow(limits && limits.weekly, limits, now);
+  if (opts.showLimits) {
+    if (five) parts.push(`5h ${five.percent}%${resetSuffix(five, now)}`);
+    if (week) parts.push(`7d ${week.percent}%${resetSuffix(week, now)}`);
+    warn = warn || [five, week].some(w => w && w.percent >= 90);
+  }
+
+  if (snap) {
+    if (opts.showCost) parts.push(`US$ ${snap.costUsd.toFixed(2)}`);
+    if (opts.showTurn && snap.turnMs !== null) parts.push(`turno ${formatTurn(snap.turnMs)}${snap.running ? ' ▶' : ''}`);
+    const window = contextWindow(snap.model, opts.contextWindow);
+    const t = snap.totals;
+    lines.push(
+      `| Modelo | ${snap.model ?? '–'} |`,
+      `| Contexto | ${snap.ctxTokens === null ? '–' : snap.ctxTokens.toLocaleString('pt-BR')} / ${window.toLocaleString('pt-BR')} tokens |`,
+      `| Custo estimado | US$ ${snap.costUsd.toFixed(4)}${snap.unpriced ? ' (há modelo sem preço conhecido)' : ''} |`,
+      `| Tokens (soma) | in ${formatTokens(t.input)} · out ${formatTokens(t.output)} · cache lido ${formatTokens(t.cacheRead)} · cache escrito ${formatTokens(t.cacheWrite)} |`,
+    );
+  }
+  const remaining = w => (w.resetsAt === null ? '' : ` — reseta em ${formatRemaining(w.resetsAt - now)}`);
+  if (five) lines.push(`| Limite 5h | ${five.percent}%${remaining(five)} |`);
+  if (week) lines.push(`| Limite 7d | ${week.percent}%${remaining(week)} |`);
+  lines.push('');
+  if (snap) lines.push('Custo calculado pela tabela de preços da API a partir do transcript (inclui subagentes); não é o valor de cobrança.');
+  if (limits && limits.receivedAt !== null) {
+    lines.push(`Limites lidos da claude-usage-meter às ${clock(limits.receivedAt)}${limits.stale ? ' (desatualizados, não exibidos)' : ''}.`);
+  }
+  return { text: parts.length ? parts.join(' · ') : '$(clock) Claude: sem dados', tooltip: lines.join('\n'), warn };
+};
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+const barClass = p => (p >= 80 ? 'hi' : p >= 50 ? 'mid' : 'ok');
+
+const barRow = (title, percent, note) =>
+  `<div class="row"><div class="top"><span>${esc(title)}</span><span>${percent}%</span></div>` +
+  `<div class="track"><div class="fill ${barClass(percent)}" style="width:${Math.min(100, Math.max(0, percent))}%"></div></div>` +
+  `<div class="sub">${esc(note)}</div></div>`;
+
+// HTML do painel lateral (barras de uso). Sem scripts; atualizado trocando o HTML.
+const renderPanel = (snap, now, opts, limits) => {
+  const five = liveWindow(limits && limits.session, limits, now);
+  const week = liveWindow(limits && limits.weekly, limits, now);
+  const resets = w => (w.resetsAt !== null ? `Reseta em ${formatRemaining(w.resetsAt - now)}` : '');
+  const body = ['<h2>Uso da assinatura</h2>'];
+
+  if (five || week) {
+    if (five) body.push(barRow('Sessão (5h)', five.percent, resets(five)));
+    if (week) body.push(barRow('Semanal (7 dias)', week.percent, resets(week)));
+  } else {
+    const why =
+      limits && limits.stale
+        ? `Leitura dos limites desatualizada (última às ${clock(limits.receivedAt)}).`
+        : 'Limites 5h/7d indisponíveis: instale e mantenha ativa a extensão <b>claude-usage-meter</b>.';
+    body.push(`<div class="sub">${why}</div>`);
+  }
+
+  body.push('<h2>Sessão atual</h2>');
+  if (snap) {
+    const window = contextWindow(snap.model, opts.contextWindow);
+    if (snap.ctxTokens !== null) {
+      const pct = Math.round((snap.ctxTokens / window) * 100);
+      body.push(barRow('Contexto', pct, `${snap.ctxTokens.toLocaleString('pt-BR')} / ${window.toLocaleString('pt-BR')} tokens`));
+    }
+    const kv = [['Modelo', snap.model ?? '–']];
+    if (snap.startedAt !== null) kv.push(['Tempo', formatElapsed(now - snap.startedAt)]);
+    if (opts.showCost) kv.push(['Custo estimado', `US$ ${snap.costUsd.toFixed(2)}`]);
+    if (snap.turnMs !== null) kv.push(['Último turno', `${formatTurn(snap.turnMs)}${snap.running ? ' ▶' : ''}`]);
+    body.push(`<table>${kv.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</table>`);
+  } else {
+    body.push('<div class="sub">Nenhum transcript do Claude Code encontrado para esta pasta.</div>');
+  }
+
+  return `<!doctype html><html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
+<style>
+body{font-family:var(--vscode-font-family);font-size:var(--vscode-font-size);color:var(--vscode-foreground);padding:4px 14px 14px}
+h2{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin:14px 0 10px;color:var(--vscode-descriptionForeground)}
+.row{margin-bottom:14px}
+.top{display:flex;justify-content:space-between;font-weight:600;margin-bottom:5px}
+.track{height:6px;border-radius:3px;background:rgba(128,128,128,.3);overflow:hidden}
+.fill{height:100%;border-radius:3px}
+.ok{background:var(--vscode-charts-green,#89d185)}.mid{background:var(--vscode-charts-yellow,#cca700)}.hi{background:var(--vscode-charts-red,#f14c4c)}
+.sub{font-size:11px;color:var(--vscode-descriptionForeground);margin-top:5px;line-height:1.4}
+table{border-collapse:collapse;width:100%}td{padding:2px 0}td:first-child{color:var(--vscode-descriptionForeground);padding-right:12px;white-space:nowrap}td:last-child{text-align:right;word-break:break-all}
+</style></head><body>${body.join('')}</body></html>`;
+};
+
+module.exports = {
+  Tracker,
+  findSession,
+  render,
+  renderPanel,
+  readLimits,
+  messageCost,
+  contextWindow,
+  formatTokens,
+  formatElapsed,
+  formatTurn,
+  formatRemaining,
+};

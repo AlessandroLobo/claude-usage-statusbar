@@ -54,4 +54,45 @@ fs.appendFileSync(file, rec('assistant', '2026-01-01T10:06:00Z', {
 const b = t.update(file, Date.parse('2026-01-01T10:07:00Z'));
 assert.ok(b.costUsd > a.costUsd, 'mesma mensagem reaparecendo deve substituir, não somar');
 assert.ok(Math.abs(b.costUsd - (1000 * 2 + 200 * 10 + 9000 * 0.2) / 1e6) < 1e-12);
+// limites 5h/7d a partir de um snapshot sintético da claude-usage-meter
+assert.strictEqual(core.formatRemaining(4 * 3_600_000 + 18 * 60_000), '4h18');
+assert.strictEqual(core.formatRemaining(26 * 3_600_000), '1d 2h');
+assert.strictEqual(core.formatRemaining(12 * 60_000), '12m');
+
+const snapFile = path.join(path.dirname(file), 'usage-snapshot.json');
+const at = Date.parse('2026-01-01T10:07:00Z');
+const writeSnap = (v, receivedAt) =>
+  fs.writeFileSync(
+    snapFile,
+    JSON.stringify({
+      v,
+      report: {
+        receivedAt,
+        session: { utilization: 12.4, resetsAt: at + 4 * 3_600_000 + 18 * 60_000 },
+        weekly: { utilization: 49, resetsAt: at + 2 * 3_600_000 + 28 * 60_000 },
+      },
+    }),
+  );
+const lim = { snapshotPath: snapFile, staleMinutes: 15 };
+const allOpts = { contextWindow: 0, showCost: true, showTurn: true, showSessionTime: true, showLimits: true };
+
+writeSnap(1, at - 60_000);
+const fresh = core.readLimits(at, lim);
+assert.strictEqual(fresh.session.percent, 12);
+assert.strictEqual(fresh.stale, false);
+const v = core.render(b, at, allOpts, fresh);
+assert.ok(v.text.includes('5h 12% ↻4h18'), v.text);
+assert.ok(v.text.includes('7d 49% ↻2h28'), v.text);
+assert.ok(core.renderPanel(b, at, allOpts, fresh).includes('Sessão (5h)'));
+
+writeSnap(1, at - 20 * 60_000);
+const old = core.readLimits(at, lim);
+assert.strictEqual(old.stale, true);
+assert.ok(!core.render(b, at, allOpts, old).text.includes('5h '), 'leitura velha não deve aparecer');
+
+writeSnap(2, at);
+assert.strictEqual(core.readLimits(at, lim), null, 'versão desconhecida do snapshot é ignorada');
+assert.strictEqual(core.readLimits(at, { snapshotPath: path.join(path.dirname(file), 'nao-existe.json'), staleMinutes: 15 }), null);
+assert.ok(core.render(b, at, allOpts, null).text.includes('US$'), 'sem snapshot a barra segue funcionando');
+
 console.log('ok');
