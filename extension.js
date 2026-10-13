@@ -3,6 +3,8 @@
 const vscode = require('vscode');
 const core = require('./core');
 
+const USAGE_URL = 'https://api.anthropic.com/api/oauth/usage';
+
 class PanelProvider {
   constructor() {
     this.view = null;
@@ -64,9 +66,64 @@ function activate(context) {
       limitsSnapshotPath: c.get('limitsSnapshotPath', ''),
       limitsStaleMinutes: Math.max(1, c.get('limitsStaleMinutes', 30)),
       refreshLimits: c.get('refreshLimits', true),
+      fetchLimitsDirectly: c.get('fetchLimitsDirectly', false),
+      directRefreshMinutes: Math.max(3, c.get('directRefreshMinutes', 5)),
       colorFive: c.get('colorSession5h', 'charts.blue'),
       colorWeek: c.get('colorWeekly7d', 'charts.yellow'),
     };
+  };
+
+  // Consulta opcional (desligada por padrão) ao mesmo endpoint usado pela claude-usage-meter.
+  let own = null;
+  let nextPollAt = 0;
+  let failures = 0;
+  let polling = false;
+
+  const pollDirect = async opts => {
+    const now = Date.now();
+    if (polling || now < nextPollAt || typeof fetch !== 'function') return false;
+    polling = true;
+    let status = 0;
+    let retryAfterMs = null;
+    try {
+      const cred = core.readCredentials();
+      if (cred.error || (cred.expiresAt !== null && cred.expiresAt <= now)) {
+        // O próprio Claude Code renova o token; só olhamos de novo em instantes.
+        nextPollAt = now + 60_000;
+        return false;
+      }
+      const ctl = new AbortController();
+      const timeout = setTimeout(() => ctl.abort(), 15_000);
+      try {
+        const res = await fetch(USAGE_URL, {
+          headers: {
+            Authorization: 'Bearer ' + cred.token,
+            'anthropic-beta': 'oauth-2025-04-20',
+            'anthropic-version': '2023-06-01',
+            Accept: 'application/json',
+            'User-Agent': 'claude-usage-statusbar',
+          },
+          signal: ctl.signal,
+        });
+        status = res.status;
+        const retryAfter = Number(res.headers.get('retry-after'));
+        retryAfterMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : null;
+        if (status === 200) {
+          const parsed = core.parseUsageBody(await res.json(), Date.now());
+          if (parsed) own = parsed;
+          else status = 0;
+        }
+      } finally {
+        clearTimeout(timeout);
+      }
+    } catch {
+      status = 0;
+    } finally {
+      polling = false;
+      failures = status === 200 ? 0 : failures + 1;
+      nextPollAt = Date.now() + core.nextPollDelay({ status, retryAfterMs, failures }, opts.directRefreshMinutes * 60_000);
+    }
+    return status === 200;
   };
 
   const hideAll = () => Object.values(items).forEach(i => i.hide());
@@ -78,9 +135,11 @@ function activate(context) {
       const paths = (vscode.workspace.workspaceFolders || []).map(f => f.uri.fsPath);
       const session = core.findSession(paths);
       const snap = session ? tracker.update(session.file, now) : null;
-      const limits = core.readLimits(now, { snapshotPath: opts.limitsSnapshotPath, staleMinutes: opts.limitsStaleMinutes });
+      const meterLimits = core.readLimits(now, { snapshotPath: opts.limitsSnapshotPath, staleMinutes: opts.limitsStaleMinutes });
+      if (opts.fetchLimitsDirectly) pollDirect(opts).then(fetched => fetched && update());
+      const limits = core.pickLimits(meterLimits, opts.fetchLimitsDirectly ? core.withAge(own, now, opts.limitsStaleMinutes) : null);
 
-      if (opts.refreshLimits && core.shouldNudge(limits, now, lastNudge)) {
+      if (!opts.fetchLimitsDirectly && opts.refreshLimits && core.shouldNudge(limits, now, lastNudge)) {
         lastNudge = now;
         // A meter é quem consulta a API e controla o limite de requisições; aqui só pedimos que releia.
         Promise.resolve(vscode.commands.executeCommand('claudeUsageMeter.refresh')).then(update, () => {});

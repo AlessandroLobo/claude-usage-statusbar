@@ -2,7 +2,7 @@
   "name": "claude-usage-statusbar",
   "displayName": "Claude Usage Status Bar",
   "description": "Mostra o uso do Claude Code no editor: tempo, contexto, limites 5h/7d, custo estimado e turno, na barra de status e num painel lateral.",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "publisher": "alessandrolobo",
   "icon": "icon.png",
   "license": "MIT",
@@ -90,6 +90,17 @@
           "type": "boolean",
           "default": true,
           "description": "Quando a leitura dos limites tem mais de 6 min, pede à extensão claude-usage-meter que atualize (comando claudeUsageMeter.refresh, no máximo 1 vez a cada 5 min)."
+        },
+        "claudeUsageBar.fetchLimitsDirectly": {
+          "type": "boolean",
+          "default": false,
+          "description": "Consulta diretamente https://api.anthropic.com/api/oauth/usage (endpoint não documentado, o mesmo da claude-usage-meter) para obter os limites 5h/7d em tempo quase real. Lê o token OAuth do Claude Code em ~/.claude/.credentials.json (somente leitura) e usa a leitura mais recente entre esta e a da meter. Desligado por padrão."
+        },
+        "claudeUsageBar.directRefreshMinutes": {
+          "type": "number",
+          "default": 5,
+          "minimum": 3,
+          "description": "Intervalo, em minutos, da consulta direta (com recuo automático em caso de limitação da API)."
         }
       }
     },

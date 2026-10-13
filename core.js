@@ -267,6 +267,13 @@ const formatTurn = ms => {
 // (sem rede e sem tocar em credenciais). Qualquer divergência de formato => sem limites.
 const limitsSnapshotPath = override => override || path.join(os.homedir(), '.claude-usage-meter', 'usage-snapshot.json');
 
+const withAge = (limits, now, staleMinutes) =>
+  limits && {
+    ...limits,
+    ageMs: limits.receivedAt === null ? null : now - limits.receivedAt,
+    stale: limits.receivedAt === null || now - limits.receivedAt > staleMinutes * 60_000,
+  };
+
 const readLimits = (now, { snapshotPath, staleMinutes }) => {
   let raw;
   try {
@@ -280,13 +287,53 @@ const readLimits = (now, { snapshotPath, staleMinutes }) => {
       ? { percent: Math.round(w.utilization), resetsAt: typeof w.resetsAt === 'number' ? w.resetsAt : null }
       : null;
   const receivedAt = typeof raw.report.receivedAt === 'number' ? raw.report.receivedAt : null;
-  return {
-    session: pick(raw.report.session),
-    weekly: pick(raw.report.weekly),
-    receivedAt,
-    ageMs: receivedAt === null ? null : now - receivedAt,
-    stale: receivedAt === null || now - receivedAt > staleMinutes * 60_000,
-  };
+  return withAge({ session: pick(raw.report.session), weekly: pick(raw.report.weekly), receivedAt, source: 'meter' }, now, staleMinutes);
+};
+
+const toMs = v => {
+  if (typeof v === 'number' && Number.isFinite(v)) return v < 1e11 ? v * 1000 : v;
+  if (typeof v !== 'string') return null;
+  const t = Date.parse(v);
+  return Number.isNaN(t) ? null : t;
+};
+
+// Resposta de /api/oauth/usage: { five_hour: { utilization, resets_at }, seven_day: { ... } }.
+const parseUsageBody = (body, receivedAt) => {
+  if (!body || typeof body !== 'object') return null;
+  const gauge = g =>
+    g && typeof g.utilization === 'number' && Number.isFinite(g.utilization) && g.utilization >= 0
+      ? { percent: Math.round(g.utilization), resetsAt: toMs(g.resets_at) }
+      : null;
+  const session = gauge(body.five_hour);
+  const weekly = gauge(body.seven_day);
+  return session || weekly ? { session, weekly, receivedAt, source: 'direto' } : null;
+};
+
+// Somente leitura: o token nunca é gravado, registrado nem enviado a outro destino que não a API da Anthropic.
+const readCredentials = () => {
+  const file = path.join(claudeDir(), '.credentials.json');
+  try {
+    const oauth = JSON.parse(fs.readFileSync(file, 'utf8')).claudeAiOauth;
+    if (!oauth || typeof oauth.accessToken !== 'string' || !oauth.accessToken) return { error: 'sem token' };
+    return { token: oauth.accessToken, expiresAt: typeof oauth.expiresAt === 'number' ? oauth.expiresAt : null };
+  } catch {
+    return { error: 'credenciais ilegíveis' };
+  }
+};
+
+// Quanto esperar até a próxima consulta direta, conforme o resultado da última.
+const nextPollDelay = ({ status, retryAfterMs, failures }, baseMs) => {
+  if (status === 200) return baseMs;
+  if (status === 401 || status === 403) return 15 * 60_000;
+  if (status === 429) return Math.min(60 * 60_000, Math.max(retryAfterMs || 0, baseMs * 2 ** Math.min(failures, 4)));
+  return Math.min(30 * 60_000, baseMs * 2 ** Math.min(failures, 3));
+};
+
+// Entre duas leituras, vale a mais recente.
+const pickLimits = (a, b) => {
+  if (!a) return b || null;
+  if (!b) return a;
+  return (b.receivedAt ?? -1) > (a.receivedAt ?? -1) ? b : a;
 };
 
 const formatRemaining = ms => {
@@ -364,7 +411,7 @@ const render = (snap, now, opts, limits) => {
   lines.push('');
   if (snap) lines.push('Custo calculado pela tabela de preços da API a partir do transcript (inclui subagentes); não é o valor de cobrança.');
   if (limits && limits.receivedAt !== null) {
-    lines.push(`Limites lidos da claude-usage-meter às ${clock(limits.receivedAt)}${limits.stale ? ' (desatualizados, não exibidos)' : ''}.`);
+    lines.push(`Limites lidos ${limits.source === 'direto' ? 'direto da API' : 'da claude-usage-meter'} às ${clock(limits.receivedAt)}${limits.stale ? ' (desatualizados, não exibidos)' : ''}.`);
   }
   const segments = {
     main: main.length ? main.join(' · ') : null,
@@ -421,7 +468,7 @@ const renderPanel = (snap, now, opts, limits) => {
     const why =
       limits && limits.stale
         ? `Leitura dos limites desatualizada (última às ${clock(limits.receivedAt)}).`
-        : 'Limites 5h/7d indisponíveis: instale e mantenha ativa a extensão <b>claude-usage-meter</b>.';
+        : 'Limites 5h/7d indisponíveis: instale e mantenha ativa a extensão <b>claude-usage-meter</b> ou ligue <code>claudeUsageBar.fetchLimitsDirectly</code>.';
     body.push(`<div class="sub">${why}</div>`);
   }
 
@@ -466,6 +513,11 @@ const shouldNudge = (limits, now, lastNudge) => {
 
 module.exports = {
   shouldNudge,
+  parseUsageBody,
+  readCredentials,
+  nextPollDelay,
+  pickLimits,
+  withAge,
   Tracker,
   findSession,
   render,

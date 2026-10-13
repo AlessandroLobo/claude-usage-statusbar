@@ -123,4 +123,27 @@ assert.strictEqual(core.shouldNudge(L(2 * 60_000), 1_000_000, 0), false, 'leitur
 assert.strictEqual(core.shouldNudge(L(7 * 60_000), 1_000_000, 0), true);
 assert.strictEqual(core.shouldNudge(L(7 * 60_000), 1_000_000, 1_000_000 - 60_000), false, 'respeita o intervalo');
 assert.strictEqual(core.shouldNudge(null, 1_000_000, 0), true, 'sem snapshot também pede');
+// consulta direta: formato da resposta, recuo e escolha da leitura mais recente
+const body = { five_hour: { utilization: 22.4, resets_at: '2026-01-01T13:00:00Z' }, seven_day: { utilization: 51, resets_at: 1767312000 } };
+const direct = core.parseUsageBody(body, at);
+assert.strictEqual(direct.session.percent, 22);
+assert.strictEqual(direct.session.resetsAt, Date.parse('2026-01-01T13:00:00Z'));
+assert.strictEqual(direct.weekly.resetsAt, 1767312000 * 1000, 'resets_at em segundos vira ms');
+assert.strictEqual(direct.source, 'direto');
+assert.strictEqual(core.parseUsageBody({}, at), null);
+assert.strictEqual(core.parseUsageBody({ five_hour: { utilization: -1 } }, at), null);
+
+const base5 = 5 * 60_000;
+assert.strictEqual(core.nextPollDelay({ status: 200, failures: 0 }, base5), base5);
+assert.strictEqual(core.nextPollDelay({ status: 401, failures: 1 }, base5), 15 * 60_000);
+assert.strictEqual(core.nextPollDelay({ status: 429, retryAfterMs: 20 * 60_000, failures: 1 }, base5), 20 * 60_000, 'respeita Retry-After');
+assert.strictEqual(core.nextPollDelay({ status: 429, failures: 10 }, base5), 60 * 60_000, 'recuo limitado a 60 min');
+assert.strictEqual(core.nextPollDelay({ status: 0, failures: 10 }, base5), 30 * 60_000);
+
+const oldMeter = core.withAge({ session: { percent: 14, resetsAt: null }, weekly: null, receivedAt: at - 26 * 60_000, source: 'meter' }, at, 30);
+const fresh3 = core.withAge(direct, at, 30);
+assert.strictEqual(core.pickLimits(oldMeter, fresh3).session.percent, 22, 'a leitura mais recente vence');
+assert.strictEqual(core.pickLimits(oldMeter, null), oldMeter);
+assert.strictEqual(core.pickLimits(null, null), null);
+assert.ok(core.render(b, at, allOpts, fresh3).tooltip.includes('direto da API'));
 console.log('ok');
