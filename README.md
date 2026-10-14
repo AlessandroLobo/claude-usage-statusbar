@@ -3,14 +3,14 @@
 </p>
 
 <p align="center">
-  <img alt="versão" src="https://img.shields.io/badge/vers%C3%A3o-0.9.0-e69875">
+  <img alt="versão" src="https://img.shields.io/badge/vers%C3%A3o-0.9.2-e69875">
   <img alt="VS Code" src="https://img.shields.io/badge/VS%20Code-1.82%2B-7fbbb3">
   <img alt="Antigravity" src="https://img.shields.io/badge/Antigravity-suportado-a7c080">
   <img alt="licença" src="https://img.shields.io/badge/licen%C3%A7a-MIT-dbbc7f">
   <img alt="telemetria" src="https://img.shields.io/badge/telemetria-nenhuma-83c092">
 </p>
 
-**Claude Usage Status Bar** é uma extensão para **VS Code** e **Antigravity** que mostra, na barra de status, o uso da sessão atual do **Claude Code**: tempo decorrido, tokens de contexto, **limites de 5h e 7d da assinatura**, custo estimado e duração do turno. Um clique abre um painel lateral com barras de progresso. As cores seguem o **tema do editor**.
+**Claude Usage: Limits, Context & Cost** é uma extensão para **VS Code** e **Antigravity** que mostra, na barra de status, o uso da sessão atual do **Claude Code**: tempo decorrido, tokens de contexto, **limites de 5h e 7d da assinatura**, custo estimado e duração do turno. Um clique abre um painel lateral com barras de progresso. As cores seguem o **tema do editor**.
 
 > 🇬🇧 **English:** Extension for **VS Code 1.82+** and **Antigravity** that shows the current Claude Code session in the status bar — elapsed time, context tokens, 5-hour / 7-day subscription limits, estimated cost and last-turn duration — plus a sidebar panel with progress bars. Colors follow your editor theme. It reads local transcripts in `~/.claude/projects`. The 5h/7d limits come from Anthropic's (undocumented) usage endpoint, queried only after you allow it on first run: the extension then reads Claude Code's OAuth token (credentials file, or the Keychain on macOS) and polls about once a minute while Claude is in use (every 5 minutes when idle), once per machine, shared across windows and editors. No telemetry. Download the `.vsix` from [Releases](https://github.com/AlessandroLobo/claude-usage-statusbar/releases). Cost is an estimate based on public API prices, not your actual bill. Unofficial project, not affiliated with Anthropic.
 
@@ -100,6 +100,17 @@ Para trocar as cores de 5h e 7d, use `claudeUsageBar.colorSession5h` e `claudeUs
 ## Instalação
 
 ### 1. Instalar a extensão
+
+**Pela loja (recomendado — atualiza sozinho):**
+
+| Editor | Onde | Como |
+| --- | --- | --- |
+| **VS Code** | [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=alessandrolobo.claude-usage-statusbar-metric) | Aba de Extensões → busque **Claude Usage: Limits, Context & Cost** → **Install** |
+| **Antigravity, Cursor, Windsurf, VSCodium** | [Open VSX](https://open-vsx.org/extension/alessandrolobo/claude-usage-statusbar-metric) | Aba de Extensões → busque o mesmo nome → **Install** |
+
+O ID da extensão é `alessandrolobo.claude-usage-statusbar-metric`; na linha de comando, `code --install-extension alessandrolobo.claude-usage-statusbar-metric` (no Antigravity, `antigravity-ide --install-extension ...`). Se não encontrar pelo nome, busque pelo ID.
+
+**Ou pelo `.vsix` do GitHub** (abaixo), que não atualiza sozinho.
 
 **Pelo editor (VS Code ou Antigravity):**
 
@@ -273,7 +284,7 @@ npx --yes @vscode/vsce package     # gera o .vsix
 
 1. Aumente `version` no `package.json` (sem aumentar, o editor não reconhece como atualização) e **não mude** `publisher`/`name`, que formam o ID da extensão.
 2. `git add -A && git commit -m "feat: ..." && git push`
-3. `git tag vX.Y.Z && git push origin vX.Y.Z` — o workflow `release.yml` roda o teste, gera o `.vsix` e cria o Release com `claude-usage-statusbar-X.Y.Z.vsix` e `claude-usage-statusbar.vsix` (nome fixo usado pelo comando de instalação).
+3. `git tag vX.Y.Z && git push origin vX.Y.Z` — o workflow `release.yml` roda o teste, gera o `.vsix` e cria o Release com `claude-usage-statusbar-metric-X.Y.Z.vsix` e `claude-usage-statusbar.vsix` (nome fixo usado pelo comando de instalação).
 4. Avise quem instalou por `.vsix` para repetir o comando de atualização.
 
 ## Privacidade e aviso

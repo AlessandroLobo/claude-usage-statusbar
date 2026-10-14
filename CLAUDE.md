@@ -18,7 +18,7 @@ Extensão para **VS Code (≥ 1.82)** e **Antigravity** que mostra, na barra de 
 | `test.js` | Testes da lógica (`node test.js`), sem VS Code. Inclui testes assíncronos do `direct.js` com `fetch` simulado. |
 | `docs/*.png` | Imagens do README. Nomes com sufixo de versão (`-0.4`, `-0.6`) para furar o cache de imagens do GitHub ao trocar. |
 | `Instalar.ps1` | Instala o `.vsix` da pasta no Antigravity e no VS Code encontrados (perfil padrão). |
-| `.github/workflows/release.yml` | Na tag `v*`: roda `test.js`, gera o `.vsix` e cria o Release com `claude-usage-statusbar-X.Y.Z.vsix` **e** `claude-usage-statusbar.vsix` (nome fixo usado por `releases/latest/download/...`). |
+| `.github/workflows/release.yml` | Na tag `v*`: roda `test.js`, gera o `.vsix` e cria o Release com `claude-usage-statusbar-metric-X.Y.Z.vsix` **e** `claude-usage-statusbar.vsix` (nome fixo usado por `releases/latest/download/...`). |
 
 ## Fontes de dados
 
@@ -40,6 +40,17 @@ Extensão para **VS Code (≥ 1.82)** e **Antigravity** que mostra, na barra de 
 ## Onde mostrar
 
 `claudeUsageBar.showStatusBar` (padrão `true`) esconde os 4 itens da barra de status; o painel e o ícone seguem. O plugin `usage-band` tem o equivalente `showAbovePrompt` (`userConfig`, v0.3.0+). Os dois READMEs documentam a tabela de combinações.
+
+## ID e nome na loja
+
+O Marketplace da Microsoft exige `displayName` único: "Claude Usage Status Bar" já era de outra extensão (`barahana10.claude-code-usage-statusbar`) e a publicação foi recusada com "already exists". Mesmo assim o Marketplace recusou o `name` `claude-usage-statusbar` ("already exists", sem nenhuma extensão pública com esse nome), então o ID passou a ser **`alessandrolobo.claude-usage-statusbar-metric`** (v0.9.2), nas duas lojas. A versão 0.9.0/0.9.1 com o ID antigo ficou só na Open VSX e no GitHub. O `displayName` é "Claude Usage: Limits, Context & Cost". Repositório, pasta de cache (`~/.claude-usage-statusbar`), nome fixo do asset do Release (`claude-usage-statusbar.vsix`) e as chaves `claudeUsageBar.*` não mudaram.
+
+## Lojas
+
+- **Marketplace** (VS Code Microsoft): `npx --yes @vscode/vsce publish --no-dependencies` com `VSCE_PAT` (token do Azure DevOps, escopo Marketplace → Manage, "All accessible organizations"; vence conforme configurado). Publisher `alessandrolobo`.
+- **Open VSX** (Antigravity e forks): `npx --yes ovsx publish <arquivo>.vsix -p $env:OVSX_PAT`. Namespace `alessandrolobo`. Um token só é mostrado na criação.
+- Publicadas: 0.9.2 nas duas. A 0.9.0 do ID antigo (`...-statusbar`) ficou só na Open VSX.
+- Pendente: reivindicar o namespace na Open VSX (Claim Ownership) e, se quiser, publicar via Trusted Publishers (OIDC, sem token guardado) a partir do `release.yml`.
 
 ## Publicar e atualizar
 
