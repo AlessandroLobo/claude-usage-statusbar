@@ -225,6 +225,12 @@ const directMod = require('./direct');
   fs.writeFileSync(path.join(dir5, 'usage.json'), JSON.stringify({ ...s5, failures: 1, nextPollAt: Date.now() + 3_600_000, lastAttemptAt: 0 }));
   await directMod.poll({ baseMs: base, minGapMs: 60_000, wantFresh: true, dir: dir5, fetchImpl: fakeFetch(200, okBody), credentials: cred });
   assert.strictEqual(calls, 2, 'recuo respeitado');
+  // janela que reiniciou sem leitura nova: mostra "–" em vez de sumir
+  const restarted = { session: { percent: 40, resetsAt: at - 1000 }, weekly: { percent: 16, resetsAt: at + 86_400_000 }, receivedAt: at - 60_000, source: 'direto' };
+  const rv = core.render(b, at, allOpts, core.withAge(restarted, at, 30));
+  assert.strictEqual(rv.segments.five, '5h –');
+  assert.ok(rv.segments.week.startsWith('7d 16%'));
+  assert.ok(core.renderPanel(b, at, allOpts, core.withAge(restarted, at, 30)).includes('Janela reiniciada'));
   console.log('ok');
 })().catch(e => {
   console.error(e);

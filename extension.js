@@ -65,6 +65,7 @@ function activate(context) {
       showTurn: c.get('showTurn', true),
       showSessionTime: c.get('showSessionTime', true),
       showLimits: c.get('showLimits', true),
+      showStatusBar: c.get('showStatusBar', true),
       refreshSeconds: Math.max(1, c.get('refreshSeconds', 5)),
       limitsSnapshotPath: c.get('limitsSnapshotPath', ''),
       limitsStaleMinutes: Math.max(1, c.get('limitsStaleMinutes', 30)),
@@ -139,7 +140,7 @@ function activate(context) {
 
       panel.set(core.renderPanel(snap, now, opts, limits));
 
-      if (hidden) {
+      if (hidden || !opts.showStatusBar) {
         hideAll();
         return;
       }

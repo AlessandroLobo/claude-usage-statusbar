@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="versão" src="https://img.shields.io/badge/vers%C3%A3o-0.7.1-e69875">
+  <img alt="versão" src="https://img.shields.io/badge/vers%C3%A3o-0.9.0-e69875">
   <img alt="VS Code" src="https://img.shields.io/badge/VS%20Code-1.82%2B-7fbbb3">
   <img alt="Antigravity" src="https://img.shields.io/badge/Antigravity-suportado-a7c080">
   <img alt="licença" src="https://img.shields.io/badge/licen%C3%A7a-MIT-dbbc7f">
@@ -45,10 +45,10 @@ Passe o mouse para ver os detalhes (modelo, contexto exato, custo, totais de tok
   <img src="docs/tooltip-0.4.png" alt="Tooltip com detalhes da sessão" width="760">
 </p>
 
-O clique abre o painel **Claude Usage** no Explorer, com barras para a sessão de 5h, a semana e o contexto (um novo clique fecha a barra lateral):
+O painel **Claude Usage** tem **ícone próprio na barra de atividades** (a coluna de ícones à esquerda), sempre visível e clicável como os demais. Clicar no ícone — ou em qualquer item da barra de status — abre o painel, com barras para a sessão de 5h, a semana e o contexto; um novo clique fecha a barra lateral:
 
 <p align="center">
-  <img src="docs/panel-0.4.png" alt="Painel lateral com barras de uso" width="340">
+  <img src="docs/icone-painel-0.8.png" alt="Ícone do medidor na barra de atividades e o painel Claude Usage aberto" width="460">
 </p>
 
 Captura real no Antigravity (versão anterior às cores próprias de 5h/7d):
@@ -57,7 +57,7 @@ Captura real no Antigravity (versão anterior às cores próprias de 5h/7d):
   <img src="docs/statusbar-real.png" alt="Captura real da barra de status no Antigravity" width="520">
 </p>
 
-> As três primeiras imagens são ilustrações no tema Everforest; no seu editor, as cores vêm do tema que você usa.
+> As imagens, exceto a captura real, são ilustrações no tema Everforest; no seu editor, as cores vêm do tema que você usa.
 
 ## O que cada campo significa
 
@@ -70,6 +70,7 @@ Exemplo: `🕒 16h57 · 543k/1M (54%)` · `5h 8% ↻4h03` · `7d 2% ↻6d 14h` �
 | `5h 8% ↻4h03` | **Limite de 5 horas** da assinatura (azul): uso e tempo até a janela reiniciar. A partir de **90%** fica vermelho. |
 | `7d 2% ↻6d 14h` | **Limite semanal** (amarelo): uso e tempo até reiniciar. A partir de **90%** fica vermelho. |
 | `(há 16m)` | Aparece ao lado dos limites quando a última leitura tem mais de 10 minutos. |
+| `5h –` | A janela reiniciou e a nova leitura ainda não chegou (por exemplo, enquanto a API pede para esperar). Volta ao valor real na próxima consulta. |
 | `US$ 26.89` | **Custo estimado** da sessão pela tabela de preços da API, somando subagentes. Serve para medir consumo — na assinatura, não é o valor cobrado. |
 | `turno 2:45` | **Duração da última resposta** do Claude, do envio até terminar; `▶` enquanto ele ainda está respondendo. |
 
@@ -146,7 +147,44 @@ O aviso aparece **uma única vez** por editor. Fechar no X, deixar sumir ou clic
 
 Tempo, contexto, custo e turno vêm do histórico que o Claude Code grava para a **pasta aberta**, e esse histórico só existe depois da primeira mensagem. Numa pasta sem conversa, a barra mostra apenas os limites 5h/7d — mande uma mensagem ao Claude e o restante aparece em segundos.
 
-> A extensão oficial do Claude Code para o editor não desenha barras de plugin (`AbovePrompt`/`ui_render`); por isso esta extensão lê os dados da sessão diretamente em vez de depender de um plugin.
+## Usando junto com o plugin `usage-band`
+
+As versões mais novas da extensão do Claude Code para o editor já desenham a barra do plugin [usage-band](https://github.com/AlessandroLobo/alessandrolobo-usage-band) acima do campo de mensagem (a etiqueta *From the usage-band plugin* identifica a barra). As versões mais antigas não desenham, e foi para esse caso que esta extensão foi criada.
+
+<p align="center">
+  <img src="docs/plugin-no-editor.png" alt="Barra do plugin usage-band acima do prompt, no editor" width="760">
+</p>
+
+| | Plugin (acima do prompt) | Esta extensão (barra de status) |
+| --- | --- | --- |
+| Dados | ao vivo, a cada resposta, direto do Claude Code | consulta à API a cada 1 a 5 min |
+| Custo | real, somado pelo Claude Code | estimado pela tabela de preços |
+| Rede e token | nenhum | lê o token e consulta a API (com sua autorização) |
+| Onde aparece | só na conversa do Claude Code | o tempo todo, em qualquer arquivo |
+
+Dá para usar os dois ao mesmo tempo ou só um deles — veja [Onde mostrar](#onde-mostrar). Se quiser apenas o plugin, desative esta extensão e os limites passam a vir do próprio Claude Code, sem consulta à API.
+
+## Onde mostrar
+
+Você escolhe onde ver o uso. Cada lugar tem o seu interruptor:
+
+| Quero ver | Barra de status (esta extensão) | Acima do chat (plugin `usage-band`) |
+| --- | --- | --- |
+| **Só na barra de baixo** | ligada | desligada |
+| **Só acima do chat** | desligada | ligada |
+| **Nos dois** (padrão) | ligada | ligada |
+
+**Barra de status (esta extensão):** `Ctrl+,` → busque **Claude Usage** → desmarque **Show Status Bar**; ou no `settings.json`:
+
+```json
+"claudeUsageBar.showStatusBar": false
+```
+
+A mudança vale na hora, sem reiniciar. O ícone e o painel lateral continuam disponíveis.
+
+**Acima do chat (plugin):** no Claude Code, `/plugin` → **usage-band** → **Configure** → desligue **Mostrar a barra acima do prompt**. (Pelo terminal: `claude plugin configure usage-band`.) Para esconder só na sessão atual, use `/uso`. Exige o plugin na versão 0.3.0 ou mais nova.
+
+Se preferir ver o uso apenas acima do chat, desligue a barra de status; a consulta de limites da extensão só é necessária se você quiser a barra de baixo ou o painel.
 
 ## De onde vêm os limites de 5h/7d
 
@@ -192,6 +230,7 @@ Sem dependências e sem telemetria. Rede: só a consulta de uso à API da Anthro
 
 | Chave | Padrão | Descrição |
 | --- | --- | --- |
+| `claudeUsageBar.showStatusBar` | `true` | Mostra os itens na barra de status (veja [Onde mostrar](#onde-mostrar)) |
 | `claudeUsageBar.contextWindow` | `0` | Janela de contexto em tokens. `0` = automático pelo modelo |
 | `claudeUsageBar.refreshSeconds` | `5` | Intervalo de atualização da barra |
 | `claudeUsageBar.showCost` | `true` | Mostra o custo estimado |

@@ -35,7 +35,11 @@ Extensão para **VS Code (≥ 1.82)** e **Antigravity** que mostra, na barra de 
 
 - 4 itens separados (`main`, `five`, `week`, `tail`) para cada trecho ter cor própria; prioridades **10003–10000**, faixa exclusiva para outras extensões não se encaixarem no meio.
 - Cores padrão são ids do tema (`charts.blue` p/ 5h, `charts.yellow` p/ 7d), acompanhando o tema ativo. Alerta: contexto ≥ 80% → `charts.orange`; limite ≥ 90% → `charts.red` (+ `statusBarItem.warningBackground`). O usuário usa o tema **Everforest** (5h `#7fbbb3`, 7d `#dbbc7f`); o plugin do Desktop usa esses mesmos hex.
-- Clique em qualquer item abre o painel (`claudeUsageBar.panel`, webview no Explorer, sem scripts, `enableCommandUris` para o link "ativar").
+- Clique em qualquer item abre o painel (`claudeUsageBar.panel`, webview em contêiner próprio da barra de atividades, ícone `media/icon.svg`, sem scripts, `enableCommandUris` para o link "ativar").
+
+## Onde mostrar
+
+`claudeUsageBar.showStatusBar` (padrão `true`) esconde os 4 itens da barra de status; o painel e o ícone seguem. O plugin `usage-band` tem o equivalente `showAbovePrompt` (`userConfig`, v0.3.0+). Os dois READMEs documentam a tabela de combinações.
 
 ## Publicar e atualizar
 

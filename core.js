@@ -360,6 +360,9 @@ const liveWindow = (w, limits, now) => {
   return w;
 };
 
+// Janela cuja leitura recente já passou do reinício: o valor antigo não vale e o novo ainda não chegou.
+const restartedWindow = (w, limits, now) => Boolean(w && limits && !limits.stale && w.resetsAt !== null && w.resetsAt <= now);
+
 const resetSuffix = (w, now) => (w.resetsAt === null ? '' : ` ↻${formatRemaining(w.resetsAt - now)}`);
 
 // Leitura que já não é recente (a meter atualiza a cada ~5 min) vem com a idade ao lado.
@@ -395,6 +398,8 @@ const render = (snap, now, opts, limits) => {
       fiveText = `5h ${five.percent}%${resetSuffix(five, now)}${ageSuffix(limits)}`;
       warnFive = five.percent >= 90;
     }
+    if (!five && restartedWindow(limits && limits.session, limits, now)) fiveText = '5h –';
+    if (!week && restartedWindow(limits && limits.weekly, limits, now)) weekText = '7d –';
     if (week) {
       weekText = `7d ${week.percent}%${resetSuffix(week, now)}${ageSuffix(limits)}`;
       warnWeek = week.percent >= 90;
@@ -469,7 +474,13 @@ const renderPanel = (snap, now, opts, limits) => {
   const resets = w => [w.resetsAt !== null ? `Reseta em ${formatRemaining(w.resetsAt - now)}` : '', ageSuffix(limits).trim().replace(/^\((.*)\)$/, 'leitura $1')].filter(Boolean).join(' · ');
   const body = ['<h2>Uso da assinatura</h2>'];
 
-  if (five || week) {
+  const reiniciada = (titulo) =>
+    `<div class="row"><div class="top"><span>${titulo}</span><span>–</span></div><div class="track"></div><div class="sub">Janela reiniciada; aguardando a nova leitura.</div></div>`;
+  const five0 = !five && restartedWindow(limits && limits.session, limits, now);
+  const week0 = !week && restartedWindow(limits && limits.weekly, limits, now);
+  if (five || week || five0 || week0) {
+    if (five0) body.push(reiniciada('Sessão (5h)'));
+    if (week0) body.push(reiniciada('Semanal (7 dias)'));
     if (five) body.push(barRow('Sessão (5h)', five.percent, resets(five), normalizeColor(opts.colorFive)));
     if (week) body.push(barRow('Semanal (7 dias)', week.percent, resets(week), normalizeColor(opts.colorWeek)));
   } else {

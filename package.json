@@ -2,7 +2,7 @@
   "name": "claude-usage-statusbar",
   "displayName": "Claude Usage Status Bar",
   "description": "Barra de status para VS Code e Antigravity com o uso do Claude Code: tempo, contexto, limites 5h/7d, custo estimado e turno, mais um painel lateral.",
-  "version": "0.7.1",
+  "version": "0.9.0",
   "publisher": "alessandrolobo",
   "icon": "icon.png",
   "license": "MIT",
@@ -42,6 +42,11 @@
           "type": "number",
           "default": 0,
           "description": "Janela de contexto em tokens. 0 = automático pelo modelo (1M para a família 5, 200k para modelos antigos)."
+        },
+        "claudeUsageBar.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostra os itens na barra de status. Desligue se preferir ver o uso só acima do chat (plugin usage-band) ou só no painel lateral."
         },
         "claudeUsageBar.refreshSeconds": {
           "type": "number",
@@ -115,11 +120,20 @@
       }
     },
     "views": {
-      "explorer": [
+      "claudeUsage": [
         {
           "type": "webview",
           "id": "claudeUsageBar.panel",
-          "name": "Claude Usage"
+          "name": "Uso do Claude"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "claudeUsage",
+          "title": "Claude Usage",
+          "icon": "media/icon.svg"
         }
       ]
     }
