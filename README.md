@@ -61,15 +61,24 @@ Captura real no Antigravity (versão anterior às cores próprias de 5h/7d):
 
 ## O que cada campo significa
 
-| Campo | Significado |
+Exemplo: `🕒 16h57 · 543k/1M (54%)` · `5h 8% ↻4h03` · `7d 2% ↻6d 14h` · `US$ 26.89 · turno 2:45`
+
+| Campo | O que significa |
 | --- | --- |
-| 🕒 `23m` | Tempo desde o início da sessão |
-| `239k/1M (24%)` | Tokens de contexto da última resposta / janela do modelo |
-| `5h 14% ↻4h09` | Uso do limite de 5 horas e tempo até reiniciar |
-| `7d 50% ↻2h19` | Uso do limite semanal e tempo até reiniciar |
-| `(há 16m)` | Aparece quando a leitura dos limites tem mais de 10 minutos |
-| `US$ 3.94` | Custo **estimado** da sessão, somando subagentes |
-| `turno 0:09` | Duração do último turno; `▶` enquanto o turno está em andamento |
+| 🕒 `16h57` | **Tempo da sessão**: desde a primeira mensagem desta conversa do Claude Code. Volta a zero numa conversa nova. |
+| `543k/1M (54%)` | **Contexto**: tokens que o Claude está "lembrando" agora, de uma janela de 1 milhão. A partir de **80%** fica laranja; perto de 100%, use `/compact` ou abra uma conversa nova. |
+| `5h 8% ↻4h03` | **Limite de 5 horas** da assinatura (azul): uso e tempo até a janela reiniciar. A partir de **90%** fica vermelho. |
+| `7d 2% ↻6d 14h` | **Limite semanal** (amarelo): uso e tempo até reiniciar. A partir de **90%** fica vermelho. |
+| `(há 16m)` | Aparece ao lado dos limites quando a última leitura tem mais de 10 minutos. |
+| `US$ 26.89` | **Custo estimado** da sessão pela tabela de preços da API, somando subagentes. Serve para medir consumo — na assinatura, não é o valor cobrado. |
+| `turno 2:45` | **Duração da última resposta** do Claude, do envio até terminar; `▶` enquanto ele ainda está respondendo. |
+
+**Passe o mouse** para ver o detalhe (modelo, contexto exato, custo com 4 casas, totais de tokens e hora da leitura dos limites) e **clique** para abrir o painel com barras.
+
+| Atualização | Frequência |
+| --- | --- |
+| Tempo, contexto, custo e turno | a cada 5 s |
+| Limites 5h/7d | a cada 1 min enquanto você usa o Claude; a cada 5 min com ele parado |
 
 ## Cores
 
