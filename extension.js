@@ -183,7 +183,12 @@ function activate(context) {
     vscode.window.registerWebviewViewProvider('claudeUsageBar.panel', panel),
     vscode.commands.registerCommand('claudeUsageBar.refresh', update),
     vscode.commands.registerCommand('claudeUsageBar.enableDirect', enableDirect),
-    vscode.commands.registerCommand('claudeUsageBar.openPanel', () => vscode.commands.executeCommand('claudeUsageBar.panel.focus')),
+    // Painel visível: um novo clique fecha a barra lateral; senão, abre e foca o painel.
+    vscode.commands.registerCommand('claudeUsageBar.openPanel', () =>
+      panel.view && panel.view.visible
+        ? vscode.commands.executeCommand('workbench.action.closeSidebar')
+        : vscode.commands.executeCommand('claudeUsageBar.panel.focus'),
+    ),
     vscode.commands.registerCommand('claudeUsageBar.toggle', () => {
       hidden = !hidden;
       update();

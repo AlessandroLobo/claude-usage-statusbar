@@ -2,7 +2,7 @@
   "name": "claude-usage-statusbar",
   "displayName": "Claude Usage Status Bar",
   "description": "Barra de status para VS Code e Antigravity com o uso do Claude Code: tempo, contexto, limites 5h/7d, custo estimado e turno, mais um painel lateral.",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "publisher": "alessandrolobo",
   "icon": "icon.png",
   "license": "MIT",
@@ -28,7 +28,7 @@
       },
       {
         "command": "claudeUsageBar.openPanel",
-        "title": "Claude Usage: Abrir painel de uso"
+        "title": "Claude Usage: Abrir/fechar painel de uso"
       },
       {
         "command": "claudeUsageBar.enableDirect",

@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="versão" src="https://img.shields.io/badge/vers%C3%A3o-0.7.0-e69875">
+  <img alt="versão" src="https://img.shields.io/badge/vers%C3%A3o-0.7.1-e69875">
   <img alt="VS Code" src="https://img.shields.io/badge/VS%20Code-1.82%2B-7fbbb3">
   <img alt="Antigravity" src="https://img.shields.io/badge/Antigravity-suportado-a7c080">
   <img alt="licença" src="https://img.shields.io/badge/licen%C3%A7a-MIT-dbbc7f">
@@ -45,7 +45,7 @@ Passe o mouse para ver os detalhes (modelo, contexto exato, custo, totais de tok
   <img src="docs/tooltip-0.4.png" alt="Tooltip com detalhes da sessão" width="760">
 </p>
 
-O clique abre o painel **Claude Usage** no Explorer, com barras para a sessão de 5h, a semana e o contexto:
+O clique abre o painel **Claude Usage** no Explorer, com barras para a sessão de 5h, a semana e o contexto (um novo clique fecha a barra lateral):
 
 <p align="center">
   <img src="docs/panel-0.4.png" alt="Painel lateral com barras de uso" width="340">
@@ -183,7 +183,7 @@ Sem dependências e sem telemetria. Rede: só a consulta de uso à API da Anthro
 
 | Comando | Ação |
 | --- | --- |
-| `Claude Usage: Abrir painel de uso` | Foca o painel lateral (também ao clicar em qualquer item da barra) |
+| `Claude Usage: Abrir/fechar painel de uso` | Abre e foca o painel lateral; se ele já estiver visível, fecha a barra lateral (o mesmo vale ao clicar em qualquer item da barra) |
 | `Claude Usage: Ativar limites 5h/7d (consulta à API de uso)` | Autoriza a consulta dos limites (mesmo efeito do **Ativar** do aviso) |
 | `Claude Usage: Atualizar agora` | Força a atualização |
 | `Claude Usage: Mostrar/ocultar barra` | Alterna a visibilidade |
