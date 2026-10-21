@@ -2,7 +2,7 @@
   "name": "claude-usage-statusbar-metric",
   "displayName": "Claude Usage: Limits, Context & Cost",
   "description": "Barra de status para VS Code e Antigravity com o uso do Claude Code: tempo, contexto, limites 5h/7d, custo estimado e turno, mais um painel lateral.",
-  "version": "0.9.2",
+  "version": "0.10.0",
   "publisher": "alessandrolobo",
   "icon": "icon.png",
   "license": "MIT",
@@ -92,8 +92,8 @@
         },
         "claudeUsageBar.colorWeekly7d": {
           "type": "string",
-          "default": "charts.yellow",
-          "description": "Cor do limite de 7d na barra e no painel: id de cor do tema (charts.yellow, acompanha o tema) ou hexadecimal (#dbbc7f). Vazio = cor padrão da barra."
+          "default": "charts.blue",
+          "description": "Cor-base do limite de 7d na barra e no painel (até o degradê começar): id de cor do tema (charts.blue, acompanha o tema) ou hexadecimal (#7fbbb3). Vazio = cor padrão da barra."
         },
         "claudeUsageBar.refreshLimits": {
           "type": "boolean",
@@ -116,6 +116,32 @@
           "default": 60,
           "minimum": 30,
           "description": "Enquanto o Claude está sendo usado, consulta os limites com este espaçamento mínimo, em segundos (no máximo uma consulta por computador nesse intervalo)."
+        },
+        "claudeUsageBar.colorGradient": {
+          "type": "boolean",
+          "default": true,
+          "description": "Muda a cor dos limites 5h e 7d e do contexto aos poucos, da cor-base até o vermelho, conforme o uso sobe (veja colorGradientStart, colorGradientAmber e colorGradientRed). Desligado, a cor é fixa e só troca no alerta."
+        },
+        "claudeUsageBar.colorGradientStart": {
+          "type": "number",
+          "default": 50,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Uso (%) a partir do qual a cor começa a sair da cor-base em direção ao âmbar. O contexto, que não tem cor-base, só começa a colorir no âmbar."
+        },
+        "claudeUsageBar.colorGradientAmber": {
+          "type": "number",
+          "default": 75,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Uso (%) em que a cor chega ao âmbar, a meio caminho do vermelho."
+        },
+        "claudeUsageBar.colorGradientRed": {
+          "type": "number",
+          "default": 90,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Uso (%) a partir do qual a cor é vermelha e o alerta de fundo da barra é ligado. Precisa ser maior que o âmbar, que precisa ser maior que o início; fora de ordem valem 50, 75 e 90."
         }
       }
     },

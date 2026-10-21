@@ -378,14 +378,18 @@ const render = (snap, now, opts, limits) => {
   let warnWeek = false;
   let fiveText = null;
   let weekText = null;
+  let ctxPct = null;
+  // Com degradê o alerta (vermelho + fundo) começa onde o vermelho chega; sem ele valem 80% (contexto) e 90% (limites).
+  const ramp = rampOf(opts);
 
   if (snap) {
     const window = contextWindow(snap.model, opts.contextWindow);
     if (opts.showSessionTime && snap.startedAt !== null) main.push(`$(clock) ${formatElapsed(now - snap.startedAt)}`);
     if (snap.ctxTokens !== null) {
       const pct = Math.round((snap.ctxTokens / window) * 100);
+      ctxPct = pct;
       main.push(`${formatTokens(snap.ctxTokens)}/${formatTokens(window)} (${pct}%)`);
-      warnMain = pct >= 80;
+      warnMain = pct >= (ramp ? ramp.red : 80);
     } else {
       main.push(`–/${formatTokens(window)}`);
     }
@@ -396,13 +400,13 @@ const render = (snap, now, opts, limits) => {
   if (opts.showLimits) {
     if (five) {
       fiveText = `5h ${five.percent}%${resetSuffix(five, now)}${ageSuffix(limits)}`;
-      warnFive = five.percent >= 90;
+      warnFive = five.percent >= (ramp ? ramp.red : 90);
     }
     if (!five && restartedWindow(limits && limits.session, limits, now)) fiveText = '5h –';
     if (!week && restartedWindow(limits && limits.weekly, limits, now)) weekText = '7d –';
     if (week) {
       weekText = `7d ${week.percent}%${resetSuffix(week, now)}${ageSuffix(limits)}`;
-      warnWeek = week.percent >= 90;
+      warnWeek = week.percent >= (ramp ? ramp.red : 90);
     }
   }
 
@@ -433,10 +437,22 @@ const render = (snap, now, opts, limits) => {
     tail: tail.length ? tail.join(' · ') : null,
   };
   const all = [segments.main, segments.five, segments.week, segments.tail].filter(Boolean);
+  // Cor de cada trecho conforme o uso (hex, id do tema ou undefined = cor padrão da barra); null sem degradê.
+  const colorFive = normalizeColor(opts.colorFive) || undefined;
+  const colorWeek = normalizeColor(opts.colorWeek) || undefined;
+  const colors = ramp
+    ? {
+        main: ctxPct === null ? undefined : usageColor(ctxPct, undefined, ramp),
+        five: five ? usageColor(five.percent, colorFive, ramp) : colorFive,
+        week: week ? usageColor(week.percent, colorWeek, ramp) : colorWeek,
+        tail: undefined,
+      }
+    : null;
   return {
     text: all.length ? all.join(' · ') : '$(clock) Claude: sem dados',
     segments,
     warn: { main: warnMain, five: warnFive, week: warnWeek },
+    colors,
     tooltip: lines.join('\n'),
   };
 };
@@ -450,12 +466,64 @@ const normalizeColor = v => {
 
 const cssColor = c => (c.startsWith('#') ? c : `var(--vscode-${c.replace(/\./g, '-')})`);
 
+// Degradê por uso: cor própria até `start`%, depois mistura com âmbar (em `amber`%) e chega ao vermelho em `red`%.
+const RAMP_DEFAULTS = { start: 50, amber: 75, red: 90 };
+const AMBER = [229, 165, 10];
+const RED = [241, 76, 76];
+// Hex aproximado dos ids de cor do tema, só para poder misturar; até `start`% o id do tema continua valendo.
+const THEME_HEX = {
+  'charts.blue': '#3794ff',
+  'charts.green': '#89d185',
+  'charts.yellow': '#cca700',
+  'charts.orange': '#d18616',
+  'charts.purple': '#b180d7',
+  'charts.red': '#f14c4c',
+};
+
+const parseHex = c => {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c || '');
+  if (!m) return null;
+  const h = m[1].length === 3 ? m[1].replace(/./g, x => x + x) : m[1];
+  return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
+};
+const toHex = rgb => `#${rgb.map(v => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+const mixRgb = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+
+// Faixas do degradê a partir das opções; null com `colorGradient: false`, e valores fora de ordem voltam ao padrão.
+const rampOf = opts => {
+  if (!opts || opts.colorGradient === false) return null;
+  const n = (v, d) => (Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : d);
+  const r = { start: n(opts.colorGradientStart, RAMP_DEFAULTS.start), amber: n(opts.colorGradientAmber, RAMP_DEFAULTS.amber), red: n(opts.colorGradientRed, RAMP_DEFAULTS.red) };
+  return r.start < r.amber && r.amber < r.red ? r : { ...RAMP_DEFAULTS };
+};
+
+// Cor para um uso de 0–100: `base` (id do tema ou hex) até `start`, depois âmbar e vermelho. Sem `base`, só colore a partir de `amber`.
+const usageColor = (percent, base, ramp) => {
+  const p = Math.min(100, Math.max(0, percent));
+  if (p <= (base ? ramp.start : ramp.amber)) return base || undefined;
+  if (p >= ramp.red) return toHex(RED);
+  if (p >= ramp.amber) return toHex(mixRgb(AMBER, RED, (p - ramp.amber) / (ramp.red - ramp.amber)));
+  const rgb = parseHex(THEME_HEX[base] || base);
+  // Id de tema desconhecido não tem como ser misturado: mantém a cor até o âmbar.
+  return rgb ? toHex(mixRgb(rgb, AMBER, (p - ramp.start) / (ramp.amber - ramp.start))) : base;
+};
+
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 const barClass = p => (p >= 80 ? 'hi' : p >= 50 ? 'mid' : 'ok');
 
-// Com `color`, título, percentual e barra usam a cor de identidade até 80%; acima disso vale a cor de alerta.
-const barRow = (title, percent, note, color) => {
+// Com degradê (`ramp`), barra e percentual seguem `usageColor`; sem `color`, o texto só se tinge a partir do âmbar.
+// Sem degradê, título, percentual e barra usam a cor de identidade até 80%; acima disso vale a cor de alerta.
+const barRow = (title, percent, note, color, ramp, baseWhenNone) => {
+  if (ramp) {
+    const c = usageColor(percent, color || baseWhenNone, ramp);
+    const tint = c && (color || percent >= ramp.amber) ? ` style="color:${cssColor(c)}"` : '';
+    return (
+      `<div class="row"><div class="top"><span${tint}>${esc(title)}</span><span${tint}>${percent}%</span></div>` +
+      `<div class="track"><div class="fill" style="background:${c ? cssColor(c) : 'var(--vscode-charts-blue)'};width:${Math.min(100, Math.max(0, percent))}%"></div></div>` +
+      `<div class="sub">${esc(note)}</div></div>`
+    );
+  }
   const own = color ? cssColor(color) : null;
   const alert = percent >= 80;
   const fill = own && !alert ? `background:${own};` : '';
@@ -471,6 +539,7 @@ const barRow = (title, percent, note, color) => {
 const renderPanel = (snap, now, opts, limits) => {
   const five = liveWindow(limits && limits.session, limits, now);
   const week = liveWindow(limits && limits.weekly, limits, now);
+  const ramp = rampOf(opts);
   const resets = w => [w.resetsAt !== null ? `Reseta em ${formatRemaining(w.resetsAt - now)}` : '', ageSuffix(limits).trim().replace(/^\((.*)\)$/, 'leitura $1')].filter(Boolean).join(' · ');
   const body = ['<h2>Uso da assinatura</h2>'];
 
@@ -481,8 +550,8 @@ const renderPanel = (snap, now, opts, limits) => {
   if (five || week || five0 || week0) {
     if (five0) body.push(reiniciada('Sessão (5h)'));
     if (week0) body.push(reiniciada('Semanal (7 dias)'));
-    if (five) body.push(barRow('Sessão (5h)', five.percent, resets(five), normalizeColor(opts.colorFive)));
-    if (week) body.push(barRow('Semanal (7 dias)', week.percent, resets(week), normalizeColor(opts.colorWeek)));
+    if (five) body.push(barRow('Sessão (5h)', five.percent, resets(five), normalizeColor(opts.colorFive), ramp));
+    if (week) body.push(barRow('Semanal (7 dias)', week.percent, resets(week), normalizeColor(opts.colorWeek), ramp));
   } else {
     const enable = '<a href="command:claudeUsageBar.enableDirect">ativar os limites 5h/7d</a>';
     const hint = opts.fetchLimitsDirectly
@@ -497,7 +566,7 @@ const renderPanel = (snap, now, opts, limits) => {
     const window = contextWindow(snap.model, opts.contextWindow);
     if (snap.ctxTokens !== null) {
       const pct = Math.round((snap.ctxTokens / window) * 100);
-      body.push(barRow('Contexto', pct, `${snap.ctxTokens.toLocaleString('pt-BR')} / ${window.toLocaleString('pt-BR')} tokens`));
+      body.push(barRow('Contexto', pct, `${snap.ctxTokens.toLocaleString('pt-BR')} / ${window.toLocaleString('pt-BR')} tokens`, null, ramp, 'charts.green'));
     }
     const kv = [['Modelo', snap.model ?? '–']];
     if (snap.startedAt !== null) kv.push(['Tempo', formatElapsed(now - snap.startedAt)]);
@@ -552,4 +621,6 @@ module.exports = {
   formatTurn,
   formatRemaining,
   normalizeColor,
+  rampOf,
+  usageColor,
 };

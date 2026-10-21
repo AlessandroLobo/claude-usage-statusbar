@@ -76,7 +76,11 @@ function activate(context) {
       directRefreshMinutes: Math.max(3, c.get('directRefreshMinutes', 5)),
       activeRefreshSeconds: Math.max(30, c.get('activeRefreshSeconds', 60)),
       colorFive: c.get('colorSession5h', 'charts.blue'),
-      colorWeek: c.get('colorWeekly7d', 'charts.yellow'),
+      colorWeek: c.get('colorWeekly7d', 'charts.blue'),
+      colorGradient: c.get('colorGradient', true),
+      colorGradientStart: c.get('colorGradientStart', 50),
+      colorGradientAmber: c.get('colorGradientAmber', 75),
+      colorGradientRed: c.get('colorGradientRed', 90),
     };
   };
 
@@ -161,8 +165,9 @@ function activate(context) {
         }
         item.text = text[key];
         item.tooltip = tooltip;
-        // Em alerta, o texto assume a cor de severidade do tema (o fundo de alerta de alguns temas é igual ao da barra).
-        item.color = view.warn[key] ? alertColors[key] : colors[key];
+        // Com degradê a cor vem do uso; sem ele, em alerta o texto assume a cor de severidade do tema
+        // (o fundo de alerta de alguns temas é igual ao da barra).
+        item.color = view.colors ? toColor(view.colors[key]) : view.warn[key] ? alertColors[key] : colors[key];
         item.backgroundColor = view.warn[key] ? warning : undefined;
         item.show();
       }

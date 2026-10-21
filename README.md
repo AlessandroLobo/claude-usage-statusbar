@@ -83,19 +83,20 @@ Exemplo: `🕒 16h57 · 543k/1M (54%)` · `5h 8% ↻4h03` · `7d 2% ↻6d 14h` �
 
 ## Cores
 
-As cores padrão vêm das cores `charts.*` do **tema ativo**: a barra e o painel se ajustam sozinhos quando você troca de tema, no VS Code ou no Antigravity.
+A cor acompanha o uso: cada limite começa na sua **cor-base** e vai mudando aos poucos até o vermelho conforme a porcentagem sobe. Vale para a barra de status e para o painel.
 
-| Item | Quando | Cor do tema | VS Code (tema padrão 2026 Dark) | Everforest escuro |
-| --- | --- | --- | --- | --- |
-| Limite **5h** | normal | `charts.blue` | `#57a3f8` | `#7fbbb3` |
-| Limite **7d** | normal | `charts.yellow` | `#e0b97f` | `#dbbc7f` |
-| Contexto | a partir de **80%** | `charts.orange` | `#cd861a` | `#e69875` |
-| Limite 5h ou 7d | a partir de **90%** | `charts.red` | `#ef8773` | `#e67e80` |
-| Barra de contexto no painel | abaixo de 50% | `charts.green` | `#86cf86` | `#a7c080` |
+| Uso | Cor |
+| --- | --- |
+| até **50%** | a cor-base (5h e 7d: `charts.blue`, do tema ativo) |
+| de 50% a **75%** | da cor-base ao âmbar, aos poucos |
+| de 75% a **90%** | do âmbar ao vermelho, aos poucos |
+| a partir de **90%** | vermelho, com o fundo de aviso do tema (`statusBarItem.warningBackground`) quando o tema define um diferente da barra |
 
-Em alerta, o item também recebe o fundo de aviso do tema (`statusBarItem.warningBackground`), quando o tema define um diferente da barra.
-
-Para trocar as cores de 5h e 7d, use `claudeUsageBar.colorSession5h` e `claudeUsageBar.colorWeekly7d` com um id de cor do tema (`charts.green`, `charts.purple`, …) ou um hexadecimal (`#7fbbb3`). Deixe vazio para usar a cor padrão da barra.
+- O **contexto** não tem cor-base: fica na cor padrão da barra até 75% e só então vai do âmbar ao vermelho. No painel, a barra de contexto parte do verde (`charts.green`).
+- Até 50% a cor acompanha o **tema ativo**. Acima disso a mistura usa um hexadecimal aproximado da cor do tema; para o tom exato nos dois lados, informe um hexadecimal. Ids de cor fora de `charts.blue`, `green`, `yellow`, `orange`, `purple` e `red` não podem ser misturados e ficam como estão até o âmbar.
+- Para trocar as cores-base de 5h e 7d, use `claudeUsageBar.colorSession5h` e `claudeUsageBar.colorWeekly7d` com um id de cor do tema ou um hexadecimal (`#7fbbb3`). Deixe vazio para usar a cor padrão da barra. O 7d usa o mesmo azul do 5h; antes da 0.10 era amarelo (`charts.yellow`).
+- As faixas ficam em `claudeUsageBar.colorGradientStart`, `colorGradientAmber` e `colorGradientRed` (padrão 50, 75 e 90; precisam estar em ordem crescente, senão valem os padrões).
+- Com `claudeUsageBar.colorGradient` em `false` a cor volta a ser fixa: 5h e 7d na cor-base, contexto laranja a partir de 80% e limites vermelhos a partir de 90%.
 
 ## Instalação
 
@@ -249,7 +250,11 @@ Sem dependências e sem telemetria. Rede: só a consulta de uso à API da Anthro
 | `claudeUsageBar.showSessionTime` | `true` | Mostra o tempo da sessão |
 | `claudeUsageBar.showLimits` | `true` | Mostra os limites 5h/7d na barra |
 | `claudeUsageBar.colorSession5h` | `charts.blue` | Cor do limite de 5h (veja [Cores](#cores)) |
-| `claudeUsageBar.colorWeekly7d` | `charts.yellow` | Cor do limite de 7d (veja [Cores](#cores)) |
+| `claudeUsageBar.colorWeekly7d` | `charts.blue` | Cor-base do limite de 7d (veja [Cores](#cores)) |
+| `claudeUsageBar.colorGradient` | `true` | Muda a cor aos poucos até o vermelho conforme o uso sobe (veja [Cores](#cores)) |
+| `claudeUsageBar.colorGradientStart` | `50` | Uso (%) em que a cor começa a sair da cor-base |
+| `claudeUsageBar.colorGradientAmber` | `75` | Uso (%) em que a cor chega ao âmbar |
+| `claudeUsageBar.colorGradientRed` | `90` | Uso (%) a partir do qual a cor é vermelha e o alerta de fundo liga |
 | `claudeUsageBar.fetchLimitsDirectly` | `false` | Consulta dos limites à API de uso; ligada pelo **Ativar** do aviso |
 | `claudeUsageBar.activeRefreshSeconds` | `60` | Espaçamento das consultas enquanto o Claude está em uso (mínimo 30) |
 | `claudeUsageBar.directRefreshMinutes` | `5` | Intervalo das consultas com o Claude parado (mínimo 3) |

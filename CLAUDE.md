@@ -34,7 +34,7 @@ Extensão para **VS Code (≥ 1.82)** e **Antigravity** que mostra, na barra de 
 ## Barra e cores
 
 - 4 itens separados (`main`, `five`, `week`, `tail`) para cada trecho ter cor própria; prioridades **10003–10000**, faixa exclusiva para outras extensões não se encaixarem no meio.
-- Cores padrão são ids do tema (`charts.blue` p/ 5h, `charts.yellow` p/ 7d), acompanhando o tema ativo. Alerta: contexto ≥ 80% → `charts.orange`; limite ≥ 90% → `charts.red` (+ `statusBarItem.warningBackground`). O usuário usa o tema **Everforest** (5h `#7fbbb3`, 7d `#dbbc7f`); o plugin do Desktop usa esses mesmos hex.
+- Cor por degradê (`core.usageColor`/`rampOf`, `claudeUsageBar.colorGradient*`): cor-base (ids do tema, `charts.blue` para 5h e 7d) até 50%, âmbar em 75% e vermelho a partir de 90% (+ `statusBarItem.warningBackground`), em mistura linear de RGB. O contexto não tem cor-base: padrão da barra até 75%, depois âmbar → vermelho; no painel parte de `charts.green`. Ids do tema só podem ser misturados via `THEME_HEX` (hex aproximado); até 50% o id continua valendo. O alerta (`warn`) acompanha onde o vermelho começa. Com `colorGradient: false` vale o comportamento antigo (contexto ≥ 80% → `charts.orange`; limite ≥ 90% → `charts.red`; painel com `.ok/.mid/.hi`). O usuário usa o tema **Everforest** (5h `#7fbbb3`, 7d `#dbbc7f` em hex explícito nas configurações dele; o plugin do Desktop usa esses mesmos hex).
 - Clique em qualquer item abre o painel (`claudeUsageBar.panel`, webview em contêiner próprio da barra de atividades, ícone `media/icon.svg`, sem scripts, `enableCommandUris` para o link "ativar").
 
 ## Onde mostrar

@@ -146,6 +146,64 @@ assert.strictEqual(core.pickLimits(oldMeter, fresh3).session.percent, 22, 'a lei
 assert.strictEqual(core.pickLimits(oldMeter, null), oldMeter);
 assert.strictEqual(core.pickLimits(null, null), null);
 assert.ok(core.render(b, at, allOpts, fresh3).tooltip.includes('direto da API'));
+// degradê de cor por uso: base até 50%, âmbar em 75%, vermelho a partir de 90%
+{
+  const ramp = core.rampOf({});
+  assert.deepStrictEqual(ramp, { start: 50, amber: 75, red: 90 });
+  assert.strictEqual(core.rampOf({ colorGradient: false }), null);
+  assert.deepStrictEqual(core.rampOf({ colorGradientStart: 80, colorGradientAmber: 70 }), { start: 50, amber: 75, red: 90 }, 'ordem inválida volta ao padrão');
+  assert.deepStrictEqual(core.rampOf({ colorGradientStart: 20, colorGradientAmber: 40, colorGradientRed: 150 }), { start: 20, amber: 40, red: 100 }, 'valores são limitados a 0–100');
+
+  assert.strictEqual(core.usageColor(0, '#3794ff', ramp), '#3794ff');
+  assert.strictEqual(core.usageColor(50, '#3794ff', ramp), '#3794ff');
+  assert.strictEqual(core.usageColor(62.5, '#3794ff', ramp), '#8e9d85', 'meio caminho entre a base e o âmbar');
+  assert.strictEqual(core.usageColor(75, '#3794ff', ramp), '#e5a50a');
+  assert.strictEqual(core.usageColor(82.5, '#3794ff', ramp), '#eb792b', 'meio caminho entre o âmbar e o vermelho');
+  assert.strictEqual(core.usageColor(90, '#3794ff', ramp), '#f14c4c');
+  assert.strictEqual(core.usageColor(100, '#3794ff', ramp), '#f14c4c');
+  assert.strictEqual(core.usageColor(140, '#3794ff', ramp), '#f14c4c', 'acima de 100 continua vermelho');
+
+  // id de cor do tema: vale até o início do degradê; depois é misturado pelo hex aproximado
+  assert.strictEqual(core.usageColor(30, 'charts.blue', ramp), 'charts.blue');
+  assert.strictEqual(core.usageColor(62.5, 'charts.blue', ramp), '#8e9d85');
+  assert.strictEqual(core.usageColor(60, 'charts.desconhecido', ramp), 'charts.desconhecido', 'sem hex conhecido, mantém a cor até o âmbar');
+  assert.strictEqual(core.usageColor(95, 'charts.desconhecido', ramp), '#f14c4c');
+  assert.strictEqual(core.usageColor(62.5, '#fff', ramp), core.usageColor(62.5, '#ffffff', ramp), 'hex curto equivale ao longo');
+
+  // sem cor-base (contexto): cor padrão até o âmbar, depois âmbar → vermelho
+  assert.strictEqual(core.usageColor(0, undefined, ramp), undefined);
+  assert.strictEqual(core.usageColor(75, undefined, ramp), undefined);
+  assert.strictEqual(core.usageColor(82.5, undefined, ramp), '#eb792b');
+  assert.strictEqual(core.usageColor(95, undefined, ramp), '#f14c4c');
+
+  // a cor nunca "salta": passos de 1% mudam pouco (sem contar a entrada do âmbar sem base)
+  const channel = (hex, i) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
+  for (let p = 50; p < 100; p++) {
+    const a = core.usageColor(p, '#3794ff', ramp);
+    const b2 = core.usageColor(p + 1, '#3794ff', ramp);
+    // O azul → âmbar é o trecho mais íngreme: 245 de diferença no canal azul em 25 passos (~10 por passo).
+    for (let i = 0; i < 3; i++) assert.ok(Math.abs(channel(a, i) - channel(b2, i)) <= 11, `salto de cor entre ${p}% e ${p + 1}%: ${a} → ${b2}`);
+  }
+
+  const lim95 = core.withAge({ session: { percent: 95, resetsAt: at + 3_600_000 }, weekly: { percent: 62, resetsAt: at + 86_400_000 }, receivedAt: at - 60_000, source: 'direto' }, at, 30);
+  const gv = core.render(b, at, { ...allOpts, colorFive: 'charts.blue', colorWeek: 'charts.blue' }, lim95);
+  assert.strictEqual(gv.colors.five, '#f14c4c');
+  assert.notStrictEqual(gv.colors.week, 'charts.blue', 'semanal a 62% já saiu da cor-base');
+  assert.strictEqual(gv.warn.five, true);
+  assert.strictEqual(gv.warn.week, false);
+  const off = core.render(b, at, { ...allOpts, colorGradient: false, colorFive: 'charts.blue' }, lim95);
+  assert.strictEqual(off.colors, null, 'sem degradê o render não devolve cores calculadas');
+  assert.strictEqual(off.warn.five, true, 'alerta de 90% continua valendo sem degradê');
+  const custom = core.render(b, at, { ...allOpts, colorGradientStart: 10, colorGradientAmber: 20, colorGradientRed: 60, colorFive: '#3794ff' }, lim95);
+  assert.strictEqual(custom.warn.week, true, 'o alerta acompanha onde o vermelho começa (60%)');
+
+  const panelOn = core.renderPanel(b, at, { ...allOpts, colorFive: 'charts.blue', colorWeek: 'charts.blue' }, lim95);
+  assert.ok(panelOn.includes('background:#f14c4c'), 'barra de 95% fica vermelha no painel');
+  assert.ok(!/class="fill (ok|mid|hi)"/.test(panelOn), 'com degradê o painel não usa as faixas fixas');
+  const panelOff = core.renderPanel(b, at, { ...allOpts, colorGradient: false, colorFive: 'charts.blue', colorWeek: 'charts.blue' }, lim95);
+  assert.ok(panelOff.includes('class="fill hi"'), 'sem degradê vale o comportamento anterior');
+}
+
 // consulta direta: uma por máquina, cache compartilhado, recuo e credencial vencida
 const directMod = require('./direct');
 (async () => {
