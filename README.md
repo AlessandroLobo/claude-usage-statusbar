@@ -87,14 +87,14 @@ A cor acompanha o uso: cada limite começa na sua **cor-base** e vai mudando aos
 
 | Uso | Cor |
 | --- | --- |
-| até **50%** | a cor-base (5h e 7d: `charts.blue`, do tema ativo) |
+| até **50%** | a cor-base (5h e 7d: `charts.green`, do tema ativo) |
 | de 50% a **75%** | da cor-base ao âmbar, aos poucos |
 | de 75% a **90%** | do âmbar ao vermelho, aos poucos |
 | a partir de **90%** | vermelho, com o fundo de aviso do tema (`statusBarItem.warningBackground`) quando o tema define um diferente da barra |
 
 - O **contexto** não tem cor-base: fica na cor padrão da barra até 75% e só então vai do âmbar ao vermelho. No painel, a barra de contexto parte do verde (`charts.green`).
 - Até 50% a cor acompanha o **tema ativo**. Acima disso a mistura usa um hexadecimal aproximado da cor do tema; para o tom exato nos dois lados, informe um hexadecimal. Ids de cor fora de `charts.blue`, `green`, `yellow`, `orange`, `purple` e `red` não podem ser misturados e ficam como estão até o âmbar.
-- Para trocar as cores-base de 5h e 7d, use `claudeUsageBar.colorSession5h` e `claudeUsageBar.colorWeekly7d` com um id de cor do tema ou um hexadecimal (`#7fbbb3`). Deixe vazio para usar a cor padrão da barra. O 7d usa o mesmo azul do 5h; antes da 0.10 era amarelo (`charts.yellow`).
+- Para trocar as cores-base de 5h e 7d, use `claudeUsageBar.colorSession5h` e `claudeUsageBar.colorWeekly7d` com um id de cor do tema ou um hexadecimal (`#7fbbb3`). Deixe vazio para usar a cor padrão da barra. O 5h e o 7d usam o mesmo verde do contexto; antes eram azuis (e, antes da 0.10, o 7d era amarelo).
 - As faixas ficam em `claudeUsageBar.colorGradientStart`, `colorGradientAmber` e `colorGradientRed` (padrão 50, 75 e 90; precisam estar em ordem crescente, senão valem os padrões).
 - Com `claudeUsageBar.colorGradient` em `false` a cor volta a ser fixa: 5h e 7d na cor-base, contexto laranja a partir de 80% e limites vermelhos a partir de 90%.
 
@@ -249,8 +249,8 @@ Sem dependências e sem telemetria. Rede: só a consulta de uso à API da Anthro
 | `claudeUsageBar.showTurn` | `true` | Mostra a duração do turno |
 | `claudeUsageBar.showSessionTime` | `true` | Mostra o tempo da sessão |
 | `claudeUsageBar.showLimits` | `true` | Mostra os limites 5h/7d na barra |
-| `claudeUsageBar.colorSession5h` | `charts.blue` | Cor do limite de 5h (veja [Cores](#cores)) |
-| `claudeUsageBar.colorWeekly7d` | `charts.blue` | Cor-base do limite de 7d (veja [Cores](#cores)) |
+| `claudeUsageBar.colorSession5h` | `charts.green` | Cor do limite de 5h (veja [Cores](#cores)) |
+| `claudeUsageBar.colorWeekly7d` | `charts.green` | Cor-base do limite de 7d (veja [Cores](#cores)) |
 | `claudeUsageBar.colorGradient` | `true` | Muda a cor aos poucos até o vermelho conforme o uso sobe (veja [Cores](#cores)) |
 | `claudeUsageBar.colorGradientStart` | `50` | Uso (%) em que a cor começa a sair da cor-base |
 | `claudeUsageBar.colorGradientAmber` | `75` | Uso (%) em que a cor chega ao âmbar |
