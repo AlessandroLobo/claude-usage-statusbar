@@ -2,7 +2,7 @@
   "name": "claude-usage-statusbar-metric",
   "displayName": "Claude Usage: Limits, Context & Cost",
   "description": "Barra de status para VS Code e Antigravity com o uso do Claude Code: tempo, contexto, limites 5h/7d, custo estimado e turno, mais um painel lateral.",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "publisher": "alessandrolobo",
   "icon": "icon.png",
   "license": "MIT",
